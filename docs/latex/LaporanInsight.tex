@@ -2,9 +2,9 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{times,amsmath,graphicx,booktabs,url}
-\graphicspath{{figures/}{docs/figures/}}
+\graphicspath{{figures/}}
 \title{Visualisasi dan Analisis Prediksi Penyewaan Sepeda Berbasis Time-Series Menggunakan Convolutional Neural Network}
-\author{\IEEEauthorblockN{Nathanael Gunawan (13524066) dan [Nama Rekan -- NIM]}
+\author{\IEEEauthorblockN{Nathanael Gunawan (13524066) dan Audric Yusuf Maynard Simatupang (13524010)}
 \IEEEauthorblockA{Program Studi Teknik Informatika\\Sekolah Teknik Elektro dan Informatika, Institut Teknologi Bandung}}
 \begin{document}
 \maketitle
@@ -49,7 +49,7 @@ Bias merupakan rata-rata $e_i$; nilai positif berarti prediksi cenderung lebih t
 
 \section{Hasil dan Pembahasan}
 \subsection{Pola permintaan harian}
-Gambar~\ref{fig:pola} membandingkan profil rata-rata per jam berdasarkan status hari kerja. Agregasi seluruh periode ini merupakan eksplorasi deskriptif, bukan evaluasi model. Perbedaan bentuk profil memperlihatkan bahwa jam yang sama dapat memiliki konteks permintaan berbeda menurut jenis hari. Atribut kalender berpotensi membantu model membedakan konteks tersebut; manfaatnya masih perlu diuji karena belum dimasukkan ke konfigurasi saat ini. Pola agregat tidak cukup untuk menetapkan penyebab perilaku pengguna.
+Profil rata-rata penyewaan per jam menurut status hari kerja ditunjukkan pada Gambar~\ref{fig:pola}. Agregasi seluruh periode ini merupakan eksplorasi deskriptif, bukan evaluasi model. Perbedaan bentuk profil memperlihatkan bahwa jam yang sama dapat memiliki konteks permintaan berbeda menurut jenis hari. Atribut kalender berpotensi membantu model membedakan konteks tersebut; manfaatnya masih perlu diuji karena belum dimasukkan ke konfigurasi saat ini. Pola agregat tidak cukup untuk menetapkan penyebab perilaku pengguna.
 \begin{figure*}[t]
 \centering\includegraphics[width=.95\textwidth]{pola_harian.pdf}
 \caption{Rata-rata penyewaan per jam pada seluruh dataset, dipisahkan menurut hari kerja dan akhir pekan/libur. Jam mengikuti timestamp dataset tanpa konversi zona waktu.}\label{fig:pola}
@@ -94,7 +94,7 @@ Gambar~\ref{fig:loss} memperlihatkan loss pelatihan dan validasi dalam skala nor
 \centering\includegraphics[width=.98\textwidth]{training.pdf}
 \caption{Riwayat MSE pelatihan dan validasi. Skala target telah dinormalisasi; panjang pelatihan kedua model berbeda akibat early stopping.}\label{fig:loss}
 \end{figure*}
-Prediksi negatif ditemukan sebanyak 11 pada univariat dan 26 pada multivariat, dengan nilai minimum masing-masing $-7,88$ dan $-17,20$. Nilai tersebut tidak sesuai makna fisik jumlah penyewaan. Evaluasi di sini mempertahankan keluaran asli tanpa pembulatan atau clipping. Pembatasan keluaran nonnegatif dapat diuji sebagai perbaikan, tetapi metrik setelah perubahan harus dihitung ulang dan dibedakan dari hasil saat ini.
+Prediksi negatif ditemukan sebanyak 11 pada univariat dan 26 pada multivariat, dengan nilai minimum masing-masing $-7{,}88$ dan $-17{,}20$. Nilai tersebut tidak sesuai makna fisik jumlah penyewaan. Evaluasi di sini mempertahankan keluaran asli tanpa pembulatan atau clipping. Pembatasan keluaran nonnegatif dapat diuji sebagai perbaikan, tetapi metrik setelah perubahan harus dihitung ulang dan dibedakan dari hasil saat ini.
 
 \section{Keterbatasan}
 Eksperimen menggunakan satu seed, satu ukuran jendela, dan satu periode uji sehingga variasi antarpelatihan belum diukur. Baseline sederhana seperti persistence atau prediksi berdasarkan jam yang sama pada hari sebelumnya belum dibandingkan dalam paper ini; hasil belum menunjukkan apakah CNN lebih baik daripada metode sederhana tersebut. Pembagian kronologis juga berarti karakteristik musim pada setiap split tidak identik.
@@ -107,7 +107,8 @@ Visualisasi memberi konteks terhadap hasil CNN: profil permintaan berbeda menuru
 Insight utama adalah perlunya menilai model melalui pola temporal dan distribusi kesalahan selain skor keseluruhan. Pukul 08.00 dan 17.00 tetap menjadi bagian yang paling sulit bagi kedua konfigurasi. Penelitian lanjutan dapat menguji fitur kalender, baseline sederhana, dan pengulangan pelatihan sebelum menyimpulkan keunggulan CNN multivariat secara lebih luas.
 
 \begin{thebibliography}{2}
-\bibitem{dataset} H. Fanaee-T, ``Bike Sharing Dataset,'' UCI Machine Learning Repository, 2013. Dokumentasi dataset lokal: \texttt{data/bike+sharing+dataset/Readme.txt}.
-\bibitem{repo} Tim proyek, ``CNNVisSiscer,'' kode sumber dan artefak eksperimen lokal, evaluasi 4 November 2026. Berkas: \texttt{src/train/model.py}, \texttt{src/train/evaluate.py}, serta direktori \texttt{output/model} dan \texttt{output/test\_output}.
+\raggedright
+\bibitem{dataset} H. Fanaee-T, ``Bike Sharing Dataset,'' UCI Machine Learning Repository, 2013. Dokumentasi dataset lokal: \path{data/bike+sharing+dataset/Readme.txt}.
+\bibitem{repo} Tim proyek, ``CNNVisSiscer,'' kode sumber dan artefak eksperimen lokal, evaluasi 4 November 2026. Berkas: \path{src/train/model.py}, \path{src/train/evaluate.py}, serta direktori \path{output/model} dan \path{output/test_output}.
 \end{thebibliography}
 \end{document}

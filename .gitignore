@@ -19,3 +19,17 @@ output/pre_result/*
 !output/pre_result/.gitkeep
 output/numerical/*
 !output/numerical/.gitkeep
+
+# LaTeX build outputs stay beside the report; keep source figures tracked.
+docs/latex/*.pdf
+docs/latex/*.aux
+docs/latex/*.log
+docs/latex/*.fls
+docs/latex/*.fdb_latexmk
+docs/latex/*.synctex.gz
+docs/latex/*.out
+docs/latex/*.toc
+docs/latex/*.lof
+docs/latex/*.lot
+docs/latex/*.bbl
+docs/latex/*.blg

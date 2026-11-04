@@ -282,6 +282,16 @@ kerja, dengan pengelompokan per model. Bila dijalankan dari `docs/` dan data
 tersedia di `../data/hour.csv`, folder induk menjadi folder kerja. Notebook juga
 dapat dibaca langsung dengan keluaran yang sudah tersimpan.
 
+## Laporan LaTeX
+
+Sumber laporan, gambar, dan seluruh hasil kompilasi berada di
+[`docs/latex/`](docs/latex/README.md). Untuk membuat
+`docs/latex/LaporanInsight.pdf`, jalankan dari root repositori:
+
+```bash
+make -C docs/latex
+```
+
 ## Tests
 
 ```bash

@@ -1,0 +1,23 @@
+courier: gpl
+texmf-dist/dvips/courier/*
+texmf-dist/fonts/afm/adobe/courier/*
+texmf-dist/fonts/afm/urw/courier/*
+texmf-dist/fonts/map/dvips/courier/*
+texmf-dist/fonts/tfm/adobe/courier/*
+texmf-dist/fonts/tfm/urw35vf/courier/*
+texmf-dist/fonts/type1/adobe/courier/*
+texmf-dist/fonts/type1/urw/courier/*
+texmf-dist/fonts/vf/adobe/courier/*
+texmf-dist/fonts/vf/urw35vf/courier/*
+texmf-dist/tex/latex/courier/*
+times: gpl
+texmf-dist/dvips/times/*
+texmf-dist/fonts/afm/adobe/times/*
+texmf-dist/fonts/afm/urw/times/*
+texmf-dist/fonts/map/dvips/times/*
+texmf-dist/fonts/tfm/adobe/times/*
+texmf-dist/fonts/tfm/urw35vf/times/*
+texmf-dist/fonts/type1/urw/times/*
+texmf-dist/fonts/vf/adobe/times/*
+texmf-dist/fonts/vf/urw35vf/times/*
+texmf-dist/tex/latex/times/*
