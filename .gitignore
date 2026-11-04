@@ -17,3 +17,5 @@ output/visualization/*
 !output/visualization/.gitkeep
 output/pre_result/*
 !output/pre_result/.gitkeep
+output/numerical/*
+!output/numerical/.gitkeep

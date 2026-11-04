@@ -65,12 +65,13 @@ def select_model(model_dir: Path = MODEL_DIR) -> str | None:
 def evaluate_and_visualize(bundle, data) -> None:
     banner("MODEL EVALUATION")
     print("Generating final test predictions and calculating metrics...")
-    result = evaluate_model(bundle.model, data, bundle.metadata)
+    result = evaluate_model(bundle.model, data, bundle.metadata, history=bundle.history)
     for metric in ("MAE", "MSE", "RMSE"):
         print(f"{metric}: {result.metrics[metric]:.6f}")
     print(f"Test samples: {result.metrics['test_samples']:,}")
     print(f"Predictions saved to {result.predictions_path}")
     print(f"Metrics saved to {result.metrics_path}")
+    print(f"Numerical reports saved to {result.numerical_paths['summary'].parent}")
     banner("VISUALIZATION")
     print("Would you like to generate visualizations?\n\n[1] Yes\n[2] No\n")
     if prompt_choice("Enter your choice: ", ("1", "2")) == "1":

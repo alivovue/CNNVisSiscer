@@ -153,6 +153,9 @@ prints the executed model's numeric results and saves:
   original time series with split boundaries, training/validation loss with the
   best epoch, actual versus predicted test counts, and prediction error with a
   zero reference line.
+- `output/numerical/<name>/<name>_<run>_*` with numerical error statistics,
+  per-target errors, daily/hour-of-day summaries, and available training history.
+  These are generated on every evaluation, including when visualization is declined.
 
 Each evaluation uses a timestamp and random run identifier to avoid overwrites.
 Plots use a noninteractive Matplotlib backend, readable 12 × 4.5 inch figures,
@@ -179,6 +182,14 @@ output/
 ├── visualization/
 │   └── testing/
 │       └── testing_<run>_*.png
+├── numerical/
+│   └── testing/
+│       ├── testing_<run>_summary.json
+│       ├── testing_<run>_error_statistics.csv
+│       ├── testing_<run>_prediction_errors.csv
+│       ├── testing_<run>_daily_errors.csv
+│       ├── testing_<run>_hourly_errors.csv
+│       └── testing_<run>_training_history.csv
 └── pre_result/
     └── testing/
         ├── testing_<run>_cleaned.csv
@@ -202,15 +213,53 @@ features, scaling configuration, split boundaries, quality report, skipped gap
 counts, sample counts, and exported filenames. Each preprocessing run gets a
 unique identifier, so loading a model again preserves previous exports.
 
+## Numerical reports
+
+All numerical files share their evaluation's model name and run identifier. They
+are saved automatically after training or loading, before the visualization prompt:
+
+| File suffix | Contents |
+| --- | --- |
+| `summary.json` | Model/run information, error statistics, test timestamps, and definitions |
+| `error_statistics.csv` | One statistic per row, with its numeric value |
+| `prediction_errors.csv` | Timestamp, actual, predicted, signed error, absolute error, squared error, and deviation from mean error |
+| `daily_errors.csv` | Per-date sample count, means/totals, bias, MAE/MSE/RMSE, variance, standard deviation, and error range |
+| `hourly_errors.csv` | The same statistics grouped by hour of day (0–23), across test dates |
+| `training_history.csv` | Epoch, training/validation losses and MAE, and the best validation epoch flag; omitted when history is unavailable |
+
+Statistics include MAE, MSE, RMSE, mean signed error (bias), error variance and
+standard deviation, signed error minimum/maximum/median/5th/95th percentiles,
+absolute error median/90th/95th/99th percentiles and maximum, overprediction and
+underprediction counts, exact prediction counts, actual/predicted means and
+standard deviations, totals, R², and weighted absolute percentage error (WAPE).
+
+`error = predicted - actual`: positive bias means overprediction, negative bias
+means underprediction. Variance is the mean squared deviation from the mean
+signed error; standard deviation is its square root. All standard deviations and
+variances describe the evaluated population (`ddof=0`), so a group with one target
+has zero variance. They use rental-count units, with squared units for variance
+and MSE. Percentiles use linear interpolation. Exact matches use zero error with
+no rounding or tolerance. R² is null for constant actual observations; WAPE is
+null when all actual observations are zero. These null values appear as blank
+cells in the statistics CSV. Training-history loss and MAE use scaled units.
+
+Daily and hour-of-day tables contain only available, eligible test targets.
+Missing hours are not filled or counted as zero errors. Each group's sample count
+shows its coverage, and totals sum only those observed targets. Re-evaluating a
+model creates a new run's reports; an existing run's numerical files cannot be
+overwritten. The reporting function can also export numerical tables directly
+from saved prediction CSVs without retraining or changing saved model files.
+
 ## Tests
 
 ```bash
-python -m unittest -v test_output_layout
+python -m unittest -v test_numerical
 ```
 
-The standard-library unittest suite covers model-specific artifact paths,
-collisions and rollback, saving/loading models, compatibility with the old flat
-layout, model isolation, evaluation and visualization paths, preprocessing CSV
-and NPZ round trips, repeated exports, and CLI workflow integration. Synthetic
-fixtures are used only in unit tests. Tests use temporary directories and clean
-up their artifacts. Normal execution always uses the actual CSV.
+The standard-library unittest suite checks the numerical statistics against
+hand-calculated values, daily/hour-of-day groups and missing-hour coverage,
+constant and zero observations, singleton groups, CSV/JSON consistency, training
+history export, model/run isolation, overwrite prevention, failed-write cleanup,
+automatic reporting during evaluation, and reports when visualization is declined.
+Small synthetic fixtures are used only in unit tests. Tests use temporary
+directories and clean up their artifacts. Normal execution always uses the actual CSV.
