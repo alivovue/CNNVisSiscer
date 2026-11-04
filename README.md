@@ -108,7 +108,7 @@ validation weights, including when the configured epoch limit is reached. See
 The final test split never participates in weight updates, early stopping, or
 hyperparameter selection.
 
-The following files form a saved bundle in `output/model/`:
+The following files form a saved bundle in `output/model/<name>/`:
 
 ```text
 <name>.keras
@@ -134,7 +134,9 @@ period. If the project has moved, the local `data/hour.csv` is used when the old
 absolute path is unavailable, and must have the same fingerprint. Missing model,
 metadata, or scaler files are errors. Missing/unreadable history skips the loss
 plot gracefully. Keep bundle files together and load trusted local bundles, since
-Joblib scalers use Python object serialization.
+Joblib scalers use Python object serialization. Models saved in the older flat
+`output/model/` layout are also listed and loadable; new models use their own
+folders. An existing model folder, even if incomplete, reserves its model name.
 
 ## Evaluation and output
 
@@ -143,11 +145,11 @@ After training/model selection, or after loading, inference runs with
 original rental-count units against the observed test targets. The application
 prints the executed model's numeric results and saves:
 
-- `output/test_output/<name>_<run>_predictions.csv` with
+- `output/test_output/<name>/<name>_<run>_predictions.csv` with
   `timestamp,actual,predicted,error`, where `error = predicted - actual`.
-- `output/test_output/<name>_<run>_metrics.json` with model configuration, split
+- `output/test_output/<name>/<name>_<run>_metrics.json` with model configuration, split
   row counts, test sample count, and MAE/MSE/RMSE.
-- `output/visualization/<name>_<run>_*.png` when visualization is selected:
+- `output/visualization/<name>/<name>_<run>_*.png` when visualization is selected:
   original time series with split boundaries, training/validation loss with the
   best epoch, actual versus predicted test counts, and prediction error with a
   zero reference line.
@@ -157,23 +159,58 @@ Plots use a noninteractive Matplotlib backend, readable 12 × 4.5 inch figures,
 300 DPI PNG output, and visible breaks at missing hours. Figures are closed after
 saving. Declining visualization preserves the model and evaluation files and
 returns to the main menu. All generated application artifacts stay in the
-existing `output/` directories and are excluded from Git.
+`output/` directory and are excluded from Git.
+
+Every output category groups files by model name. For a model named `testing`:
+
+```text
+output/
+├── model/
+│   └── testing/
+│       ├── testing.keras
+│       ├── testing_metadata.json
+│       ├── testing_feature_scaler.joblib
+│       ├── testing_target_scaler.joblib
+│       └── testing_history.json
+├── test_output/
+│   └── testing/
+│       ├── testing_<run>_predictions.csv
+│       └── testing_<run>_metrics.json
+├── visualization/
+│   └── testing/
+│       └── testing_<run>_*.png
+└── pre_result/
+    └── testing/
+        ├── testing_<run>_cleaned.csv
+        ├── testing_<run>_scaled.csv
+        ├── testing_<run>_windows.npz
+        └── testing_<run>_metadata.json
+```
+
+Preprocessing results are saved automatically before training and when loading a
+model. `cleaned.csv` contains the validated, chronologically sorted observations,
+timestamps, zero-based row indices, and split labels. `scaled.csv` contains the
+selected scaled features and the separate `target_cnt` column with timestamps,
+row indices, and split labels. The same training-fitted scalers are used without
+refitting. The original `data/hour.csv` remains raw and unchanged.
+
+`windows.npz` preserves the exact float32 `X_train`, `y_train`, `X_val`, `y_val`,
+`X_test`, and `y_test` arrays. It also contains `timestamps_train`,
+`timestamps_val`, `timestamps_test` and corresponding `target_indices_*` arrays.
+Open it with `np.load(path, allow_pickle=False)`. The JSON records the model name,
+features, scaling configuration, split boundaries, quality report, skipped gap
+counts, sample counts, and exported filenames. Each preprocessing run gets a
+unique identifier, so loading a model again preserves previous exports.
 
 ## Tests
 
 ```bash
-python -m unittest -v test_pipeline
+python -m unittest -v test_output_layout
 ```
 
-The standard-library unittest suite covers dataset validation, exact split
-boundaries, training-only scaler fitting, both input shapes, hourly gaps, preceding
-split context, configurable CNNs, training/validation separation, early stopping
-and restored weights, real small-model training, model/scaler/metadata round trips,
-unchanged inference weights, evaluation shapes/metrics, 300 DPI plots, and CLI
-input/workflow handling. Synthetic fixtures are used only in unit tests; fixed
-split tests use the minimum necessary scale of just over 15,000 rows. Test files
-are isolated in temporary directories under `output/test_output/` and cleaned up.
-Normal execution always uses the actual CSV.
-
-See [verification results](docs/verification.md) for actual-dataset CLI runs,
-executed metrics, and the local verification environment.
+The standard-library unittest suite covers model-specific artifact paths,
+collisions and rollback, saving/loading models, compatibility with the old flat
+layout, model isolation, evaluation and visualization paths, preprocessing CSV
+and NPZ round trips, repeated exports, and CLI workflow integration. Synthetic
+fixtures are used only in unit tests. Tests use temporary directories and clean
+up their artifacts. Normal execution always uses the actual CSV.

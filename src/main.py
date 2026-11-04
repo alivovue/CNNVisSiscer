@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from src.preprocessing.preprocess import DATASET_PATH, prepare_data
+from src.preprocessing.preprocess import DATASET_PATH, prepare_data, save_preprocessed_data
 from src.train.evaluate import evaluate_model
 from src.train.train import MODEL_DIR, ensure_name_available, list_models, load_bundle, train_and_save
 from src.visualization.visualize import generate_visualizations
@@ -91,6 +91,8 @@ def new_model_workflow() -> None:
     name = prompt_model_name()
     banner("DATA PREPROCESSING")
     data = prepare_data(DATASET_PATH, mode, window_size)
+    preprocessed = save_preprocessed_data(data, name)
+    print(f"Preprocessed data saved to {preprocessed['metadata'].parent}")
     banner("CNN TRAINING")
     bundle = train_and_save(data, name, kernel_size, filters, epochs, batch_size)
     metadata = bundle.metadata
@@ -120,6 +122,8 @@ def load_model_workflow() -> None:
     data = prepare_data(path, metadata["forecasting_mode"], metadata["window_size"],
                         feature_scaler=bundle.feature_scaler, target_scaler=bundle.target_scaler,
                         saved_metadata=metadata)
+    preprocessed = save_preprocessed_data(data, name)
+    print(f"Preprocessed data saved to {preprocessed['metadata'].parent}")
     evaluate_and_visualize(bundle, data)
 
 

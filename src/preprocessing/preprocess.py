@@ -1,17 +1,23 @@
 """Chronological, gap-aware preparation of one-hour-ahead forecasting data."""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import hashlib
+import json
 from pathlib import Path
 from typing import Callable
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
+from src.outputs import model_output_directory
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATASET_PATH = PROJECT_ROOT / "data" / "hour.csv"
+PRE_RESULT_DIR = PROJECT_ROOT / "output" / "pre_result"
 TRAIN_END = 13_000
 VALIDATION_END = 15_000
 FEATURES = {"univariate": ["cnt"], "multivariate": ["cnt", "temp", "hum", "windspeed"]}
@@ -210,3 +216,57 @@ def prepare_data(path: Path = DATASET_PATH, mode: str = "univariate", window_siz
 def scaling_configuration() -> dict:
     return {"type": "MinMaxScaler", "feature_range": [0, 1], "clip": False,
             "fit_start": 0, "fit_stop": TRAIN_END}
+
+
+def save_preprocessed_data(data: PreparedData, model_name: str,
+                           output_dir: Path = PRE_RESULT_DIR) -> dict[str, Path]:
+    """Keep inspected rows, scaled values, and the exact windows supplied to the CNN."""
+    directory = model_output_directory(output_dir, model_name)
+    directory.mkdir(parents=True, exist_ok=True)
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "_" + uuid4().hex[:8]
+    prefix = f"{model_name}_{run_id}"
+    paths = {"cleaned": directory / f"{prefix}_cleaned.csv",
+             "scaled": directory / f"{prefix}_scaled.csv",
+             "windows": directory / f"{prefix}_windows.npz",
+             "metadata": directory / f"{prefix}_metadata.json"}
+    labels = np.empty(len(data.frame), dtype="U10")
+    for name, boundary in data.metadata["boundaries"].items():
+        labels[boundary["start"]:boundary["stop"]] = name
+    cleaned = data.frame.copy()
+    cleaned.insert(0, "row_index", np.arange(len(cleaned)))
+    cleaned.insert(1, "split", labels)
+    features = data.metadata["features"]
+    target = data.metadata["target"]
+    scaled = pd.DataFrame(data.feature_scaler.transform(data.frame[features].to_numpy(dtype=np.float64))
+                          .astype(np.float32), columns=features)
+    scaled.insert(0, "timestamp", data.frame.timestamp.to_numpy())
+    scaled.insert(0, "split", labels)
+    scaled.insert(0, "row_index", np.arange(len(scaled)))
+    scaled[f"target_{target}"] = data.target_scaler.transform(
+        data.frame[[target]].to_numpy(dtype=np.float64)).reshape(-1).astype(np.float32)
+    arrays = {}
+    for name, split in (("train", data.train), ("val", data.validation), ("test", data.test)):
+        arrays[f"X_{name}"] = split.X
+        arrays[f"y_{name}"] = split.y
+        arrays[f"timestamps_{name}"] = split.timestamps.to_numpy(dtype="datetime64[ns]")
+        arrays[f"target_indices_{name}"] = split.target_indices
+    metadata = {**data.metadata, "model_name": model_name, "preprocessing_run": run_id,
+                "files": {key: path.name for key, path in paths.items()}}
+    written = []
+    try:
+        for key, frame in (("cleaned", cleaned), ("scaled", scaled)):
+            with paths[key].open("x") as handle:
+                written.append(paths[key])
+                frame.to_csv(handle, index=False, date_format="%Y-%m-%d %H:%M:%S")
+        with paths["windows"].open("xb") as handle:
+            written.append(paths["windows"])
+            np.savez_compressed(handle, **arrays)
+        with paths["metadata"].open("x") as handle:
+            written.append(paths["metadata"])
+            json.dump(metadata, handle, indent=2, allow_nan=False)
+            handle.write("\n")
+    except BaseException:
+        for path in written:
+            path.unlink(missing_ok=True)
+        raise
+    return paths

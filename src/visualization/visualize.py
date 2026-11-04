@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
+from src.outputs import model_output_directory
 from src.preprocessing.preprocess import PROJECT_ROOT, PreparedData
 from src.train.evaluate import EvaluationResult
 
@@ -20,7 +21,7 @@ def generate_visualizations(data: PreparedData, evaluation: EvaluationResult, me
     from matplotlib import pyplot as plt
     from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
 
-    output_dir = Path(output_dir)
+    output_dir = model_output_directory(output_dir, metadata["model_name"])
     output_dir.mkdir(parents=True, exist_ok=True)
     prefix = f"{metadata['model_name']}_{evaluation.run_id}"
     saved = []

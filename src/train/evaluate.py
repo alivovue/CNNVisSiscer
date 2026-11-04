@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from src.preprocessing.preprocess import PROJECT_ROOT, PreparedData, positive_integer
-from src.train.train import validate_model_name
+from src.outputs import model_output_directory, validate_model_name
 
 
 TEST_OUTPUT_DIR = PROJECT_ROOT / "output" / "test_output"
@@ -66,7 +66,7 @@ def evaluate_model(model, data: PreparedData, metadata: dict, output_dir: Path =
                "test_samples": len(actual), "error_definition": "predicted - actual", **scores}
     predictions = pd.DataFrame({"timestamp": data.test.timestamps, "actual": actual,
                                 "predicted": predicted, "error": predicted - actual})
-    output_dir = Path(output_dir)
+    output_dir = model_output_directory(output_dir, name)
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / f"{name}_{run_id}_predictions.csv"
     metrics_path = output_dir / f"{name}_{run_id}_metrics.json"

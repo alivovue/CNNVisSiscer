@@ -3,12 +3,12 @@
 from dataclasses import dataclass
 import json
 from pathlib import Path
-import re
 import warnings
 
 import joblib
 import numpy as np
 
+from src.outputs import model_output_directory, validate_model_name
 from src.preprocessing.preprocess import FEATURES, PROJECT_ROOT, PreparedData, positive_integer
 from src.train.model import build_model
 
@@ -26,19 +26,9 @@ class LoadedModel:
     history: dict | None
 
 
-def validate_model_name(name: str) -> str:
-    if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", name):
-        raise ValueError("Use 1–64 letters, digits, underscores or hyphens; start with a letter or digit.")
-    reserved = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)),
-                *(f"LPT{i}" for i in range(1, 10))}
-    if name.upper() in reserved:
-        raise ValueError("That model name is reserved by the operating system.")
-    return name
-
-
-def artifact_paths(name: str, model_dir: Path = MODEL_DIR) -> dict[str, Path]:
+def artifact_paths(name: str, model_dir: Path = MODEL_DIR, *, legacy: bool = False) -> dict[str, Path]:
     validate_model_name(name)
-    directory = Path(model_dir)
+    directory = Path(model_dir) if legacy else model_output_directory(model_dir, name)
     return {"model": directory / f"{name}.keras",
             "metadata": directory / f"{name}_metadata.json",
             "feature_scaler": directory / f"{name}_feature_scaler.joblib",
@@ -47,8 +37,9 @@ def artifact_paths(name: str, model_dir: Path = MODEL_DIR) -> dict[str, Path]:
 
 
 def ensure_name_available(name: str, model_dir: Path = MODEL_DIR) -> None:
-    paths = artifact_paths(name, model_dir)
-    if any(path.exists() or path.is_symlink() for path in paths.values()):
+    directory = model_output_directory(model_dir, name)
+    legacy_paths = artifact_paths(name, model_dir, legacy=True)
+    if directory.exists() or any(path.exists() or path.is_symlink() for path in legacy_paths.values()):
         raise FileExistsError(f"Model '{name}' already has saved artifacts. Choose a different name.")
 
 
@@ -81,7 +72,7 @@ def train_model(model, data: PreparedData, epochs: int = 50, batch_size: int = 3
 
 def save_bundle(model, data: PreparedData, name: str, kernel_size: int, filters: int,
                 history: dict, summary: dict, model_dir: Path = MODEL_DIR, seed: int = SEED) -> dict:
-    """Reserve every filename exclusively and roll back partial writes on failure."""
+    """Reserve the model's directory and roll back partial writes on failure."""
     ensure_name_available(name, model_dir)
     paths = artifact_paths(name, model_dir)
     Path(model_dir).mkdir(parents=True, exist_ok=True)
@@ -91,6 +82,8 @@ def save_bundle(model, data: PreparedData, name: str, kernel_size: int, filters:
                 "scaler_paths": {"feature": paths["feature_scaler"].name,
                                  "target": paths["target_scaler"].name},
                 "history_path": paths["history"].name}
+    directory = paths["model"].parent
+    directory.mkdir(exist_ok=False)
     try:
         for path in paths.values():
             with path.open("xb"):
@@ -105,6 +98,7 @@ def save_bundle(model, data: PreparedData, name: str, kernel_size: int, filters:
     except BaseException:
         for path in reserved:
             path.unlink(missing_ok=True)
+        directory.rmdir()
         raise
     return metadata
 
@@ -121,11 +115,19 @@ def train_and_save(data: PreparedData, name: str, kernel_size: int = 3, filters:
 
 
 def list_models(model_dir: Path = MODEL_DIR) -> list[str]:
-    return sorted(path.stem for path in Path(model_dir).glob("*.keras") if path.is_file())
+    root = Path(model_dir)
+    names = {path.stem for path in root.glob("*.keras") if path.is_file()}
+    names.update(path.stem for path in root.glob("*/*.keras")
+                 if path.is_file() and path.stem == path.parent.name and not path.parent.is_symlink())
+    return sorted(names)
 
 
 def load_bundle(name: str, model_dir: Path = MODEL_DIR) -> LoadedModel:
     paths = artifact_paths(name, model_dir)
+    # Retain support for models saved before per-model folders were introduced.
+    # An existing model folder always wins, including when it is incomplete.
+    if not paths["model"].parent.exists():
+        paths = artifact_paths(name, model_dir, legacy=True)
     for kind in ("model", "metadata", "feature_scaler", "target_scaler"):
         if not paths[kind].is_file():
             raise FileNotFoundError(f"Missing {kind.replace('_', ' ')} file: {paths[kind]}")
