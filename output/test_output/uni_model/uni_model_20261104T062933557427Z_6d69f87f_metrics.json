@@ -1,0 +1,15 @@
+{
+  "model_name": "uni_model",
+  "evaluation_run": "20261104T062933557427Z_6d69f87f",
+  "forecasting_mode": "univariate",
+  "window_size": 24,
+  "kernel_size": 3,
+  "training_rows": 13000,
+  "validation_rows": 2000,
+  "testing_rows": 2379,
+  "test_samples": 2261,
+  "error_definition": "predicted - actual",
+  "MAE": 35.63901636450626,
+  "MSE": 2894.053746569138,
+  "RMSE": 53.79641016433288
+}

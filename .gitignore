@@ -9,13 +9,4 @@ core
 core.*
 
 # Keep generated artifacts local; preserve the existing directory placeholders.
-output/model/*
-!output/model/.gitkeep
-output/test_output/*
-!output/test_output/.gitkeep
-output/visualization/*
-!output/visualization/.gitkeep
-output/pre_result/*
-!output/pre_result/.gitkeep
-output/numerical/*
-!output/numerical/.gitkeep
+

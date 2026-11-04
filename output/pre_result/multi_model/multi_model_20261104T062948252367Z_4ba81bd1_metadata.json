@@ -1,0 +1,75 @@
+{
+  "dataset_path": "/home/audric/kuliah/siscer/tubes/CNNVisSiscer/data/hour.csv",
+  "forecasting_mode": "multivariate",
+  "features": [
+    "cnt",
+    "temp",
+    "hum",
+    "windspeed"
+  ],
+  "target": "cnt",
+  "window_size": 24,
+  "prediction_horizon_hours": 1,
+  "boundaries": {
+    "training": {
+      "start": 0,
+      "stop": 13000,
+      "rows": 13000,
+      "first_timestamp": "2011-01-01T00:00:00",
+      "last_timestamp": "2012-06-30T20:00:00"
+    },
+    "validation": {
+      "start": 13000,
+      "stop": 15000,
+      "rows": 2000,
+      "first_timestamp": "2012-06-30T21:00:00",
+      "last_timestamp": "2012-09-22T04:00:00"
+    },
+    "testing": {
+      "start": 15000,
+      "stop": 17379,
+      "rows": 2379,
+      "first_timestamp": "2012-09-22T05:00:00",
+      "last_timestamp": "2012-12-31T23:00:00"
+    }
+  },
+  "dataset_quality": {
+    "rows": 17379,
+    "missing_values": 0,
+    "duplicate_timestamps": 0,
+    "input_was_sorted": true,
+    "hourly_gaps": 75,
+    "missing_hours": 165,
+    "first_timestamp": "2011-01-01T00:00:00",
+    "last_timestamp": "2012-12-31T23:00:00",
+    "sha256": "e03de4ee4ef4dc376ac6e04bf829673c6269e8eba5c60fa121640fa2f829504f"
+  },
+  "scaling": {
+    "type": "MinMaxScaler",
+    "feature_range": [
+      0,
+      1
+    ],
+    "clip": false,
+    "fit_start": 0,
+    "fit_stop": 13000
+  },
+  "skipped_gap_windows": {
+    "training": 1580,
+    "validation": 0,
+    "testing": 118
+  },
+  "samples": {
+    "training": 11396,
+    "validation": 2000,
+    "testing": 2261
+  },
+  "model_name": "multi_model",
+  "preprocessing_run": "20261104T062948252367Z_4ba81bd1",
+  "files": {
+    "cleaned": "multi_model_20261104T062948252367Z_4ba81bd1_cleaned.csv",
+    "scaled": "multi_model_20261104T062948252367Z_4ba81bd1_scaled.csv",
+    "windows": "multi_model_20261104T062948252367Z_4ba81bd1_windows.npz",
+    "metadata": "multi_model_20261104T062948252367Z_4ba81bd1_metadata.json"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "model_name": "multi_model",
+  "evaluation_run": "20261104T063149664065Z_1012bc46",
+  "forecasting_mode": "multivariate",
+  "window_size": 24,
+  "kernel_size": 3,
+  "training_rows": 13000,
+  "validation_rows": 2000,
+  "testing_rows": 2379,
+  "test_samples": 2261,
+  "error_definition": "predicted - actual",
+  "MAE": 34.33524441794846,
+  "MSE": 2585.9406310973704,
+  "RMSE": 50.852144803315525
+}
