@@ -250,6 +250,38 @@ model creates a new run's reports; an existing run's numerical files cannot be
 overwritten. The reporting function can also export numerical tables directly
 from saved prediction CSVs without retraining or changing saved model files.
 
+## Notebook mandiri berbahasa Indonesia
+
+[docs/CNNVis.ipynb](docs/CNNVis.ipynb) memuat seluruh implementasi univariat secara
+mandiri, dengan fungsi yang disalin langsung dari kode repo ke sel notebook.
+Nama fungsi/variabel, komentar, docstring, serta logika tetap mengikuti repo;
+penjelasan dan interpretasi menggunakan bahasa Indonesia. Penyesuaian hanya
+untuk lokasi data/output, penghapusan impor internal, dan teks grafik. Notebook
+tidak mengimpor `src/` atau membaca berkas Python proyek. Pengaturan bawaan:
+jendela 24 jam, kernel 3, 32 filter, maksimum 50 epoch, batch 32, dan seed 42.
+Notebook berisi penjelasan sebelum/sesudah kode, hasil yang telah dieksekusi,
+enam grafik, tabel numerik, pembanding satu jam/24 jam sebelumnya, serta
+interpretasi berbahasa Indonesia untuk setiap grafik.
+
+Anda dapat menyalin hanya berkas notebook ini ke folder lain. Letakkan
+`hour.csv` di sebelahnya atau dalam subfolder `data/`; alternatifnya, tentukan
+`DATASET_OVERRIDE` di sel pertama. Jika data lokal tidak ditemukan, notebook mengunduh
+data resmi UCI secara otomatis. Unduhan pertama memerlukan koneksi internet.
+
+Untuk menjalankannya secara terpisah:
+
+```bash
+python -m pip install numpy pandas scikit-learn tensorflow matplotlib joblib notebook
+jupyter notebook CNNVis.ipynb
+```
+
+Pilih kernel Python yang sesuai, lalu gunakan **Restart Kernel and Run All Cells**.
+Setiap eksekusi melatih model baru bernama `uni_model_notebook_repo`, dengan akhiran
+angka jika nama itu sudah dipakai. Hasil disimpan ke folder `output/` pada folder
+kerja, dengan pengelompokan per model. Bila dijalankan dari `docs/` dan data
+tersedia di `../data/hour.csv`, folder induk menjadi folder kerja. Notebook juga
+dapat dibaca langsung dengan keluaran yang sudah tersimpan.
+
 ## Tests
 
 ```bash
