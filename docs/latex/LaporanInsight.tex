@@ -16,52 +16,269 @@ time-series, CNN, penyewaan sepeda, visualisasi, prediksi.
 \end{IEEEkeywords}
 
 \section{Pendahuluan}
-Jumlah penyewaan sepeda berubah sepanjang waktu. Pola harian, perbedaan hari kerja dan hari libur, serta kondisi lingkungan dapat menyertai perubahan permintaan. Visualisasi membantu mengenali pola tersebut sekaligus menunjukkan kondisi ketika prediksi model menyimpang dari observasi.
+Sepeda merupakan salah satu sarana transportasi sekaligus aktivitas rekreasi yang banyak digunakan oleh masyarakat. Selain menggunakan sepeda pribadi, masyarakat juga dapat memanfaatkan layanan penyewaan sepeda untuk memenuhi kebutuhan transportasi maupun mengisi waktu luang. Namun, jumlah penyewaan sepeda tidak selalu konstan karena dapat dipengaruhi oleh berbagai faktor, seperti waktu, hari, dan kondisi cuaca. Pada waktu tertentu, permintaan penyewaan sepeda dapat meningkat atau menurun mengikuti pola aktivitas masyarakat. Oleh karena itu, data penyewaan sepeda dapat direpresentasikan sebagai data deret waktu (\textit{time-series}), yaitu data yang tersusun berdasarkan urutan waktu dan dapat menunjukkan pola perubahan dari satu periode ke periode berikutnya.
 
-Penelitian ini menggunakan data penyewaan per jam untuk menjawab tiga pertanyaan: bagaimana pola permintaan berbeda menurut jam dan jenis hari; apakah penambahan variabel cuaca historis memperbaiki prediksi CNN; serta pada kondisi waktu apa model menghasilkan kesalahan terbesar. CNN digunakan sebagai model prediksi, sedangkan grafik deret waktu, kurva pelatihan, dan kesalahan per jam digunakan untuk menginterpretasikan data dan hasil model.
+Salah satu metode yang dapat digunakan untuk memodelkan dan memprediksi data deret waktu adalah \textit{Convolutional Neural Network} (CNN). CNN merupakan salah satu arsitektur jaringan saraf tiruan yang menggunakan operasi konvolusi untuk mengekstraksi pola dari data masukan. Meskipun umumnya digunakan dalam pengolahan citra, CNN juga dapat diterapkan pada data deret waktu melalui konvolusi satu dimensi (\textit{Conv1D}). Dengan pendekatan ini, CNN dapat mempelajari pola temporal dari sejumlah pengamatan sebelumnya untuk menghasilkan prediksi terhadap nilai pada periode berikutnya.
+
+Penelitian ini bertujuan untuk menerapkan CNN dalam memprediksi jumlah penyewaan sepeda berdasarkan data historis. Dua konfigurasi model digunakan, yaitu model univariat yang hanya memanfaatkan riwayat jumlah penyewaan dan model multivariat yang turut mempertimbangkan temperatur, kelembapan, serta kecepatan angin. Kedua konfigurasi dibandingkan untuk menganalisis pengaruh penambahan variabel cuaca terhadap akurasi prediksi. Selain itu, hasil prediksi dan evaluasi model divisualisasikan dalam bentuk grafik untuk mengidentifikasi pola penyewaan sepeda, membandingkan kinerja model, serta menganalisis kondisi ketika terjadi kesalahan prediksi.
+
+\section{Dasar Teori}
+
+\subsection{Data Deret Waktu (\textit{Time-Series})}
+
+Data deret waktu (\textit{time-series}) merupakan sekumpulan data yang dicatat secara berurutan berdasarkan waktu, baik dalam interval tetap maupun tidak tetap. Data tersebut dapat berupa pengamatan per jam, harian, bulanan, hingga tahunan. Berbeda dengan data yang tidak memiliki urutan temporal, nilai pada suatu titik dalam deret waktu dapat memiliki hubungan dengan nilai pada titik-titik sebelumnya. Hubungan ini memungkinkan data historis digunakan untuk mempelajari pola dan memperkirakan nilai pada periode mendatang \cite{forecasting}.
+
+Data deret waktu memiliki beberapa karakteristik yang dapat diamati, antara lain tren (\textit{trend}), musiman (\textit{seasonality}), dan fluktuasi acak (\textit{random fluctuations}). Tren menggambarkan kecenderungan perubahan nilai dalam jangka panjang, sedangkan musiman merupakan pola yang berulang pada interval waktu tertentu. Sementara itu, fluktuasi acak menunjukkan perubahan yang tidak sepenuhnya dapat dijelaskan oleh pola yang teratur. Tidak semua data deret waktu memiliki seluruh karakteristik tersebut~\cite{forecasting}. Pada data penyewaan sepeda, misalnya, pola musiman dapat berupa perbedaan jumlah penyewaan berdasarkan jam atau hari dalam seminggu.
+
+Berdasarkan jumlah variabel yang digunakan, pemodelan deret waktu dapat dibedakan menjadi univariat dan multivariat. Pemodelan univariat menggunakan riwayat satu variabel untuk memprediksi nilai berikutnya, sedangkan pemodelan multivariat melibatkan beberapa variabel yang berpotensi memberikan informasi tambahan. Dalam prediksi penyewaan sepeda, pendekatan univariat dapat menggunakan riwayat jumlah penyewaan, sementara pendekatan multivariat dapat menggabungkan jumlah penyewaan dengan temperatur, kelembapan, dan kecepatan angin.
+
+\subsection{\textit{Convolutional Neural Network} (CNN)}
+
+\textit{Convolutional Neural Network} (CNN) merupakan salah satu arsitektur jaringan saraf tiruan (\textit{artificial neural network}) yang menggunakan operasi konvolusi untuk mempelajari dan mengekstraksi pola dari data masukan. CNN banyak digunakan dalam pengolahan citra untuk mengenali pola spasial, seperti garis, bentuk, dan tekstur. Namun, CNN juga dapat diterapkan pada data sekuensial, termasuk deret waktu, melalui konvolusi satu dimensi (\textit{one-dimensional convolution} atau Conv1D). Pada pendekatan ini, proses konvolusi dilakukan sepanjang dimensi waktu untuk mempelajari pola lokal dari pengamatan yang berurutan \cite{conv1d}.
+
+Salah satu karakteristik utama CNN adalah penggunaan bobot yang sama pada berbagai posisi masukan (\textit{weight sharing}). Dengan mekanisme ini, sebuah filter dapat mendeteksi jenis pola yang serupa meskipun muncul pada posisi waktu yang berbeda. CNN juga memanfaatkan hubungan lokal antarobservasi, sehingga dapat digunakan untuk mempelajari perubahan nilai yang terjadi dalam rentang waktu tertentu.
+
+Dalam penerapannya pada prediksi deret waktu, terdapat beberapa konsep dan komponen penting yang berkaitan dengan CNN, yaitu sebagai berikut.
+
+\subsubsection{Input Window}
+
+\textit{Input window} merupakan sejumlah pengamatan historis yang digunakan sebagai masukan model untuk menghasilkan suatu prediksi. Ukuran jendela (\textit{window size}) menentukan berapa banyak titik waktu sebelumnya yang diperhatikan oleh model. Sebagai contoh, \textit{window size} sebesar 24 pada data per jam berarti model menggunakan data dari 24 jam sebelumnya untuk memprediksi nilai pada jam berikutnya. Pemilihan ukuran jendela memengaruhi banyaknya informasi historis yang tersedia bagi model. Pada pendekatan multivariat, setiap titik waktu dalam jendela dapat memuat beberapa variabel sekaligus.
+
+\subsubsection{Kernel dan Filter}
+
+\textit{Kernel} merupakan sekumpulan bobot yang digunakan dalam operasi konvolusi untuk memproses sebagian data masukan. Ukuran kernel (\textit{kernel size}) menentukan banyaknya titik waktu berurutan yang diperiksa dalam satu operasi. Sebagai contoh, kernel berukuran 3 memproses tiga titik waktu yang berdekatan pada setiap posisi konvolusi.
+
+Sementara itu, \textit{filter} merupakan unit konvolusi dengan bobot yang dipelajari selama pelatihan. Dalam Conv1D multivariat, sebuah filter memproses seluruh kanal fitur pada rentang waktu yang dicakup oleh kernel. Setiap filter menghasilkan sebuah \textit{feature map} yang merepresentasikan respons terhadap pola tertentu. Penggunaan beberapa filter memungkinkan CNN mempelajari berbagai pola lokal secara bersamaan~\cite{conv1d}.
+
+\subsubsection{Stride dan Padding}
+
+\textit{Stride} merupakan besar pergeseran kernel setiap kali operasi konvolusi dilakukan. \textit{Stride} sebesar 1 berarti kernel bergeser satu posisi pada setiap operasi. Sementara itu, \textit{padding} merupakan penambahan nilai pada batas masukan untuk mengatur ukuran keluaran konvolusi. Pada \textit{valid padding}, tidak terdapat penambahan nilai sehingga panjang keluaran dapat lebih pendek daripada panjang masukan. Sebaliknya, \textit{same padding} dapat mempertahankan panjang keluaran ketika \textit{stride} bernilai 1~\cite{conv1d}.
+
+\subsubsection{Convolutional Layer (Conv1D)}
+
+\textit{Convolutional layer} merupakan lapisan utama CNN yang menerapkan filter pada data masukan untuk menghasilkan representasi fitur. Pada Conv1D, filter digeser sepanjang dimensi waktu dan melakukan operasi perkalian serta penjumlahan berbobot terhadap nilai dalam jangkauan kernel. Hasil operasi tersebut membentuk \textit{feature map} yang kemudian diproses oleh lapisan berikutnya. Melalui proses pelatihan, bobot filter disesuaikan sehingga jaringan dapat mengenali pola lokal yang berguna untuk menghasilkan prediksi~\cite{conv1d}.
+
+\subsubsection{Fungsi Aktivasi}
+
+Fungsi aktivasi digunakan untuk memperkenalkan sifat nonlinier ke dalam jaringan sehingga model dapat mempelajari hubungan yang lebih kompleks. Salah satu fungsi aktivasi yang umum digunakan adalah \textit{Rectified Linear Unit} (ReLU), yang menghasilkan nilai nol untuk masukan negatif dan mempertahankan nilai masukan positif. Penggunaan ReLU memungkinkan jaringan mempelajari hubungan nonlinier tanpa membatasi seluruh nilai keluaran pada rentang tertentu.
+
+\subsubsection{Flatten dan Dense Layer}
+
+\textit{Flatten} merupakan operasi yang mengubah keluaran multidimensi dari lapisan konvolusi menjadi vektor satu dimensi. Vektor tersebut kemudian dapat diteruskan menuju \textit{dense layer}, yaitu lapisan yang menghubungkan setiap neuron dengan seluruh keluaran dari lapisan sebelumnya. \textit{Dense layer} digunakan untuk menggabungkan fitur hasil konvolusi dan mempelajari hubungan yang diperlukan untuk menghasilkan prediksi.
+
+\subsubsection{Output Layer}
+
+\textit{Output layer} merupakan lapisan terakhir yang menghasilkan nilai prediksi model. Pada permasalahan regresi, seperti prediksi jumlah penyewaan sepeda, lapisan ini dapat menggunakan satu neuron dengan fungsi aktivasi linear untuk menghasilkan satu nilai numerik. Berbeda dengan fungsi aktivasi yang membatasi rentang keluaran, aktivasi linear memungkinkan model menghasilkan nilai dalam rentang bilangan real.
+
+\subsection{\textit{Min-Max Scaling}}
+
+\textit{Min-Max Scaling} merupakan metode normalisasi data yang digunakan untuk mengubah skala suatu variabel ke dalam rentang tertentu, umumnya antara 0 dan 1. Normalisasi dilakukan untuk mengurangi perbedaan skala antarvariabel sehingga proses pembelajaran pada jaringan saraf dapat berlangsung lebih stabil. Proses \textit{Min-Max Scaling} dengan rentang keluaran 0 hingga 1 dinyatakan melalui persamaan berikut \cite{minmax}.
+
+\begin{equation}\label{eq:minmax}
+x'=\frac{x-x_{\min}}{x_{\max}-x_{\min}}
+\end{equation}
+
+Dengan \(x\) merupakan nilai awal, \(x_{\min}\) dan \(x_{\max}\) merupakan nilai minimum dan maksimum pada data referensi, serta \(x'\) merupakan nilai hasil normalisasi. Nilai minimum dan maksimum yang diperoleh dari data pelatihan dapat digunakan kembali untuk mentransformasikan data validasi dan pengujian agar tidak terjadi kebocoran informasi (\textit{data leakage}). Nilai hasil transformasi pada data baru dapat berada di luar rentang 0 hingga 1 apabila melampaui batas minimum atau maksimum data pelatihan.
+
+\subsection{\textit{Mean Absolute Error} (MAE), \textit{Mean Squared Error} (MSE), dan \textit{Root Mean Squared Error} (RMSE)}
+
+MAE, MSE, dan RMSE merupakan metrik yang digunakan untuk mengukur tingkat kesalahan model dalam permasalahan regresi. Ketiganya membandingkan nilai hasil prediksi dengan nilai aktual, tetapi memiliki karakteristik perhitungan yang berbeda.
+
+\textit{Mean Absolute Error} (MAE) mengukur rata-rata nilai absolut selisih antara hasil prediksi dan nilai aktual. MAE memperhitungkan besar kesalahan tanpa memperhatikan arahnya dan memiliki satuan yang sama dengan variabel yang diprediksi. MAE dirumuskan sebagai berikut~\cite{regression-metrics}.
+
+\begin{equation}\label{eq:mae}
+\operatorname{MAE}=\frac{1}{n}\sum_{i=1}^{n}|y_i-\hat{y}_i|
+\end{equation}
+
+\textit{Mean Squared Error} (MSE) mengukur rata-rata kuadrat selisih antara nilai prediksi dan nilai aktual. Karena menggunakan kuadrat kesalahan, MSE memberikan penalti yang lebih besar terhadap prediksi dengan selisih yang tinggi. MSE dirumuskan sebagai berikut~\cite{regression-metrics}.
+
+\begin{equation}\label{eq:mse}
+\operatorname{MSE}=\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat{y}_i)^2
+\end{equation}
+
+\textit{Root Mean Squared Error} (RMSE) merupakan akar kuadrat dari MSE. Dengan mengambil akar kuadrat, RMSE menghasilkan nilai kesalahan dalam satuan yang sama dengan variabel yang diprediksi, tetapi tetap memberikan perhatian lebih besar terhadap kesalahan yang tinggi. RMSE dirumuskan sebagai berikut~\cite{regression-metrics}.
+
+\begin{equation}\label{eq:rmse}
+\operatorname{RMSE}=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat{y}_i)^2}
+\end{equation}
+
+Pada ketiga persamaan tersebut, \(n\) merupakan jumlah sampel, \(y_i\) merupakan nilai aktual, dan \(\hat{y}_i\) merupakan nilai hasil prediksi. Semakin kecil nilai ketiga metrik tersebut, semakin rendah kesalahan prediksi model.
+
+\subsection{Optimisasi Adam}
+
+Adam (\textit{Adaptive Moment Estimation}) merupakan algoritma optimisasi yang digunakan untuk memperbarui bobot jaringan saraf selama proses pelatihan. Algoritma ini memanfaatkan estimasi momen pertama dan kedua dari gradien untuk menyesuaikan besar pembaruan setiap parameter secara adaptif. Momen pertama merepresentasikan rata-rata gradien, sedangkan momen kedua merepresentasikan rata-rata kuadrat gradien~\cite{adam}.
+
+Dengan pendekatan tersebut, setiap parameter dapat memiliki besar pembaruan yang berbeda sesuai dengan karakteristik gradiennya. Adam banyak digunakan dalam pelatihan jaringan saraf karena mampu melakukan proses optimisasi secara efisien dan tidak memerlukan penentuan laju pembelajaran yang berbeda secara manual untuk setiap parameter.
+
+\subsection{\textit{Early Stopping}}
+
+\textit{Early stopping} merupakan teknik yang digunakan untuk menghentikan proses pelatihan jaringan saraf ketika kinerja model pada data validasi tidak lagi menunjukkan perbaikan. Teknik ini bertujuan untuk mengurangi risiko \textit{overfitting}, yaitu kondisi ketika model terlalu menyesuaikan diri dengan data pelatihan sehingga kemampuan generalisasinya terhadap data baru menurun \cite{early-stopping}.
+
+Penerapan \textit{early stopping} umumnya menggunakan parameter \textit{patience}, yaitu jumlah \textit{epoch} yang diizinkan tanpa adanya peningkatan kinerja validasi sebelum pelatihan dihentikan. Satu \textit{epoch} merupakan satu kali pemrosesan seluruh data pelatihan, yang dapat dilakukan dalam beberapa kelompok kecil atau \textit{batch}. Selain menghentikan pelatihan, \textit{early stopping} juga dapat dikonfigurasi untuk memulihkan bobot dari \textit{epoch} dengan kinerja validasi terbaik agar model tidak menggunakan bobot dari tahap pelatihan terakhir yang belum tentu memberikan hasil optimal~\cite{early-stopping}.
 
 \section{Dataset dan Persiapan Data}
-\subsection{Sumber dan variabel}
-Bike Sharing Dataset memuat data Capital Bikeshare di Washington, D.C., pada 2011--2012 beserta atribut kalender dan lingkungan \cite{dataset}. Berkas \texttt{hour.csv} memiliki 17.379 observasi. Target \texttt{cnt} menyatakan total penyewaan dalam satu jam, bukan jumlah pengguna unik. Model univariat memakai \texttt{cnt}; model multivariat memakai \texttt{cnt}, \texttt{temp}, \texttt{hum}, dan \texttt{windspeed}. Temperatur, kelembapan, dan angin merupakan atribut ternormalisasi pada dataset. Atribut \texttt{workingday} digunakan untuk analisis deskriptif, tetapi tidak menjadi input kedua model.
 
-\subsection{Kualitas dan pembagian kronologis}
-Timestamp dibentuk dari tanggal dan jam. Metadata eksperimen mencatat tidak ada nilai kosong atau timestamp duplikat, tetapi terdapat 75 jeda temporal yang mencakup 165 jam tanpa observasi. Tidak adanya nilai kosong pada baris yang tersedia tidak berarti seluruh jam kalender tersedia. Jendela input yang melintasi jeda waktu dikeluarkan, tanpa mengisi jam yang hilang dengan nol.
+\subsection{Sumber dan Atribut}
 
-Sebanyak 13.000 baris pertama digunakan untuk pelatihan, 2.000 berikutnya untuk validasi, dan 2.379 terakhir untuk pengujian. Pelatihan berakhir pada 30 Juni 2012 pukul 20.00; validasi berlangsung hingga 22 September 2012 pukul 04.00; periode uji dimulai satu jam setelahnya dan berakhir 31 Desember 2012 pukul 23.00. Setelah pembentukan jendela, jumlah sampel efektif adalah 11.396, 2.000, dan 2.261. Jumlah baris mentah berbeda dari jumlah pasangan input--target yang dapat digunakan.
+Dataset yang digunakan dalam penelitian ini merupakan \textit{Bike Sharing Dataset} yang diperoleh dari UCI Machine Learning Repository \cite{dataset}. Dataset tersebut memuat informasi jumlah penyewaan sepeda pada sistem Capital Bikeshare di Washington, D.C., Amerika Serikat, selama periode 1 Januari 2011 hingga 31 Desember 2012. Data penyewaan dicatat berdasarkan waktu dan disertai berbagai informasi mengenai kondisi lingkungan serta kalender sehingga dapat digunakan untuk pemodelan deret waktu (\textit{time-series}).
 
-MinMaxScaler untuk fitur dan target hanya di-fit pada data pelatihan. Parameter yang sama diterapkan pada validasi dan pengujian. Target menentukan keanggotaan split; konteks input dapat berasal dari periode sebelumnya. Evaluasi bersifat rolling satu langkah: observasi aktual yang sudah tersedia dapat digunakan untuk memprediksi jam berikutnya. Hasil ini tidak mewakili prediksi rekursif untuk banyak jam sekaligus.
+Dataset terdiri atas dua berkas utama, yaitu \texttt{day.csv} dan \texttt{hour.csv}. Berkas \texttt{day.csv} memuat data penyewaan dengan interval harian yang terdiri atas 731 baris dan 16 kolom, sedangkan \texttt{hour.csv} memuat data penyewaan dengan interval per jam yang terdiri atas 17.379 baris dan 17 kolom. Penelitian ini menggunakan berkas \texttt{hour.csv} karena memiliki resolusi temporal yang lebih tinggi sehingga memungkinkan model mempelajari perubahan jumlah penyewaan dari satu jam ke jam berikutnya.
+
+Atribut dalam \texttt{hour.csv} meliputi \texttt{instant} sebagai indeks data; \texttt{dteday}, \texttt{yr}, \texttt{mnth}, dan \texttt{hr} sebagai informasi tanggal dan waktu; \texttt{season}, \texttt{holiday}, \texttt{weekday}, dan \texttt{workingday} sebagai informasi musim dan kalender; \texttt{weathersit}, \texttt{temp}, \texttt{atemp}, \texttt{hum}, dan \texttt{windspeed} sebagai informasi kondisi cuaca; serta \texttt{casual}, \texttt{registered}, dan \texttt{cnt} sebagai informasi jumlah penyewaan sepeda. Atribut \texttt{cnt} menyatakan total penyewaan sepeda dalam satu jam yang merupakan penjumlahan dari penyewaan pengguna kasual (\texttt{casual}) dan pengguna terdaftar (\texttt{registered}).
+
+Dalam penelitian ini, digunakan dua konfigurasi masukan model, yaitu univariat dan multivariat. Model univariat hanya menggunakan atribut \texttt{cnt} sebagai masukan sekaligus target prediksi. Sementara itu, model multivariat menggunakan atribut \texttt{cnt}, \texttt{temp}, \texttt{hum}, dan \texttt{windspeed} sebagai masukan, dengan \texttt{cnt} tetap menjadi target prediksi. Atribut \texttt{temp}, \texttt{hum}, dan \texttt{windspeed} pada dataset sumber telah dinyatakan dalam bentuk ternormalisasi. Selain itu, atribut \texttt{dteday} dan \texttt{hr} digabungkan untuk membentuk \textit{timestamp} yang menunjukkan waktu setiap pengamatan. \textit{Timestamp} digunakan untuk mengurutkan data dan memeriksa kesinambungan waktu, tetapi tidak digunakan secara langsung sebagai fitur masukan CNN.
+
+\subsection{Preprocessing dan Pembagian Data}
+
+\subsubsection{Preprocessing}
+
+Sebelum digunakan dalam pelatihan model, dataset melalui tahap \textit{preprocessing} untuk memastikan data memiliki format yang sesuai dan dapat digunakan dalam proses prediksi deret waktu. Dataset awal terdiri atas 17.379 baris pengamatan. Proses \textit{preprocessing} dilakukan melalui beberapa tahapan berikut.
+
+\begin{itemize}
+\item Validasi data.\\*
+Pemeriksaan dilakukan terhadap kelengkapan atribut, nilai kosong (\textit{missing values}), tipe data numerik, rentang nilai atribut, dan duplikasi \textit{timestamp}. Hasil pemeriksaan menunjukkan bahwa dataset tidak memiliki nilai kosong maupun \textit{timestamp} duplikat.
+
+\item Pembentukan dan pengurutan timestamp.\\*
+Atribut \texttt{dteday} dan \texttt{hr} digabungkan untuk membentuk \textit{timestamp}, kemudian data diurutkan secara kronologis. Pemeriksaan terhadap selisih waktu antarbaris menemukan 75 jeda temporal dengan total 165 jam yang tidak memiliki pengamatan. Jam yang tidak tersedia tidak diisi dengan nilai buatan karena berpotensi mengubah pola data asli.
+
+\item Normalisasi data.\\*
+Fitur masukan dan target prediksi dinormalisasi menggunakan metode \textit{Min-Max Scaling} dengan rentang 0 hingga 1. Nilai minimum dan maksimum ditentukan berdasarkan data pelatihan, kemudian parameter normalisasi yang sama diterapkan pada data validasi dan pengujian. Pendekatan ini digunakan untuk menghindari kebocoran informasi (\textit{data leakage}) dari data di luar periode pelatihan.
+
+\item Pembentukan input window.\\*
+Data yang telah dinormalisasi diubah menjadi sejumlah pasangan masukan dan target menggunakan pendekatan \textit{sliding window}. Penelitian ini menggunakan \textit{window size} sebesar 24, sehingga setiap masukan terdiri atas 24 pengamatan per jam yang berurutan untuk memprediksi jumlah penyewaan pada satu jam berikutnya. Jendela yang melintasi waktu tanpa pengamatan tidak digunakan agar hubungan temporal dalam setiap masukan tetap konsisten.
+
+\end{itemize}
+
+Proses \textit{preprocessing} tidak menghapus baris dari dataset asli sehingga jumlah pengamatan tetap sebanyak 17.379 baris. Namun, setelah pembentukan \textit{input window} dan penyaringan terhadap jendela yang tidak berkesinambungan, diperoleh 15.657 pasangan masukan dan target yang dapat digunakan oleh model. Jumlah tersebut terdiri atas sampel pelatihan, validasi, dan pengujian sesuai dengan pembagian data yang telah ditentukan.
+
+\subsubsection{Pembagian Data}
+
+Dataset dibagi menjadi tiga bagian, yaitu data pelatihan (\textit{training}), data validasi (\textit{validation}), dan data pengujian (\textit{testing}). Pembagian dilakukan secara kronologis berdasarkan urutan waktu pengamatan, tanpa melakukan pengacakan (\textit{shuffling}). Pendekatan ini digunakan untuk mempertahankan hubungan temporal serta memastikan bahwa model dilatih menggunakan data dari periode yang lebih awal daripada periode pengujiannya.
+
+\begin{itemize}
+\item Data pelatihan (training).\\*
+Data pelatihan digunakan untuk melatih CNN agar mampu mempelajari pola dari riwayat penyewaan sepeda. Bagian ini mencakup 13.000 baris pertama, mulai dari 1 Januari 2011 hingga 30 Juni 2012 pukul 20.00. Setelah pembentukan \textit{input window}, diperoleh 11.396 sampel pelatihan yang dapat digunakan untuk memperbarui bobot model.
+
+\item Data validasi (validation).\\*
+Data validasi digunakan untuk memantau kinerja model selama proses pelatihan tanpa memperbarui bobot jaringan. Hasil validasi juga digunakan dalam mekanisme \textit{early stopping} untuk menentukan kapan pelatihan perlu dihentikan. Bagian ini mencakup 2.000 baris berikutnya, mulai dari 30 Juni 2012 pukul 21.00 hingga 22 September 2012 pukul 04.00. Seluruh 2.000 baris tersebut dapat digunakan sebagai target validasi setelah pembentukan \textit{input window}.
+
+\item Data pengujian (testing).\\*
+Data pengujian digunakan untuk mengevaluasi kemampuan prediksi model terhadap data yang tidak digunakan dalam proses pelatihan maupun pemilihan bobot berdasarkan validasi. Bagian ini mencakup 2.379 baris terakhir, mulai dari 22 September 2012 pukul 05.00 hingga 31 Desember 2012 pukul 23.00. Setelah pembentukan \textit{input window} dan penyaringan terhadap jeda temporal, diperoleh 2.261 sampel pengujian yang digunakan untuk mengevaluasi kinerja model.
+
+\end{itemize}
+
+Pada pembentukan \textit{input window}, setiap sampel ditempatkan ke dalam bagian data berdasarkan waktu target prediksinya. Oleh karena itu, masukan untuk target validasi atau pengujian dapat menggunakan pengamatan aktual dari periode sebelumnya sebagai konteks historis, tanpa menggunakan informasi dari waktu yang lebih baru daripada target. Pembagian ini diterapkan secara identik pada model univariat dan multivariat sehingga kedua konfigurasi dapat dibandingkan menggunakan periode dan target pengujian yang sama.
 
 \section{Metode}
+
+\subsection{Model}
+
+Penelitian ini menggunakan dua model \textit{Convolutional Neural Network} (CNN) untuk memprediksi jumlah penyewaan sepeda satu jam ke depan. Kedua model menggunakan pendekatan deret waktu dengan masukan berupa data historis dari 24 jam sebelumnya~\cite{repo}. Perbedaan utama kedua model terletak pada jumlah dan jenis atribut yang digunakan sebagai masukan, yaitu sebagai berikut.
+
+\subsubsection{Model Univariat}
+\leavevmode\par\nopagebreak
+
+Model univariat merupakan model yang hanya menggunakan satu atribut, yaitu \texttt{cnt}, yang merepresentasikan jumlah penyewaan sepeda per jam. Model ini memanfaatkan riwayat jumlah penyewaan selama 24 jam sebelumnya untuk memprediksi jumlah penyewaan pada jam berikutnya. Dengan demikian, model mempelajari pola perubahan jumlah penyewaan berdasarkan informasi historis tanpa melibatkan variabel eksternal.
+
+\subsubsection{Model Multivariat}
+\leavevmode\par\nopagebreak
+
+Model multivariat merupakan model yang menggunakan beberapa atribut sebagai masukan, yaitu \texttt{cnt}, \texttt{temp}, \texttt{hum}, dan \texttt{windspeed}. Selain riwayat jumlah penyewaan sepeda, model ini juga mempertimbangkan temperatur, kelembapan, dan kecepatan angin selama 24 jam sebelumnya. Penambahan atribut tersebut bertujuan untuk memberikan informasi kontekstual yang lebih luas sehingga model berpotensi mempelajari hubungan antara kondisi cuaca dan jumlah penyewaan sepeda. Kedua model kemudian dibandingkan untuk mengetahui apakah penggunaan atribut cuaca dapat meningkatkan akurasi prediksi.
+
 \subsection{Arsitektur CNN}
-Untuk target pada jam $t$, input terdiri atas 24 observasi berurutan sebelum $t$. Dimensi input adalah $24\times1$ pada univariat dan $24\times4$ pada multivariat. Konvolusi satu dimensi memproses pola lokal sepanjang sumbu waktu melalui filter yang parameternya dipelajari. Arsitektur implementasi terdiri atas Conv1D dengan 32 filter dan kernel 3, ReLU, Flatten, Dense 16 dengan ReLU, serta Dense 1 linear. Konvolusi menggunakan padding valid. Lapisan keluaran linear memungkinkan prediksi bernilai negatif sehingga kelayakan nilai keluaran juga perlu diperiksa.
 
-Kedua konfigurasi menggunakan Adam, loss MSE, batch size 32, batas 50 epoch, dan seed 42. Data pelatihan tidak diacak. Early stopping memantau loss validasi dengan patience 10 dan mengembalikan bobot pada epoch validasi terbaik. Model univariat selesai pada epoch 32 dengan epoch terbaik 22; model multivariat selesai pada epoch 31 dengan epoch terbaik 21.
+Kedua model menggunakan arsitektur CNN satu dimensi (Conv1D) dengan konfigurasi lapisan dan hiperparameter yang sama. Perbedaan terdapat pada dimensi masukannya, yaitu \(24 \times 1\) untuk model univariat dan \(24 \times 4\) untuk model multivariat. Arsitektur dimulai dengan lapisan Conv1D yang menggunakan 32 filter, \textit{kernel size} sebesar 3, \textit{stride} sebesar 1, dan \textit{valid padding}, diikuti oleh fungsi aktivasi ReLU. Hasil konvolusi kemudian diproses melalui lapisan \textit{Flatten} untuk mengubahnya menjadi vektor satu dimensi, yang diteruskan ke lapisan \textit{Dense} dengan 16 neuron dan aktivasi ReLU. Lapisan keluaran terdiri atas satu neuron dengan aktivasi linear untuk menghasilkan prediksi jumlah penyewaan sepeda pada jam berikutnya.
 
-\subsection{Evaluasi dan asal hasil}
-Paper ini menganalisis artefak eksperimen yang telah tersimpan pada repositori \cite{repo}: metadata dan riwayat pelatihan, serta CSV prediksi pengujian. Angka MAE dan RMSE dihitung ulang dari CSV; nilai aktual dicocokkan dengan dataset dan timestamp kedua model diperiksa agar perbandingan menggunakan target identik. Analisis ini tidak melakukan pelatihan ulang. Grafik disusun kembali dari data dan artefak tersebut.
+\subsection{Pipeline CNN}
 
-Dengan $e_i=\hat y_i-y_i$, metrik utama adalah
-\begin{equation}
-\operatorname{MAE}=\frac{1}{n}\sum_{i=1}^{n}|e_i|,\qquad
-\operatorname{RMSE}=\sqrt{\frac{1}{n}\sum_{i=1}^{n}e_i^2}.
-\end{equation}
-Bias merupakan rata-rata $e_i$; nilai positif berarti prediksi cenderung lebih tinggi. MAE, RMSE, dan bias dilaporkan dalam satuan jumlah penyewaan. Loss pelatihan menggunakan target ternormalisasi sehingga nilainya tidak dapat dibandingkan langsung dengan RMSE dalam satuan asli.
+Setelah arsitektur CNN ditentukan, kedua model dilatih secara terpisah menggunakan data yang telah melalui tahap \textit{preprocessing}. Proses pelatihan bertujuan agar model dapat mempelajari hubungan antara data historis dan jumlah penyewaan sepeda pada jam berikutnya. Proses ini terdiri atas beberapa tahapan, yaitu pelatihan, validasi, dan penyimpanan model.
+
+\subsubsection{Pelatihan Model (\textit{Training})}
+\leavevmode\par\nopagebreak
+
+Pelatihan dilakukan menggunakan 11.396 sampel pelatihan yang telah diperoleh dari proses \textit{preprocessing}. Pada setiap iterasi, model menerima \textit{input window} dan menghasilkan nilai prediksi yang kemudian dibandingkan dengan nilai aktual menggunakan fungsi kerugian \textit{Mean Squared Error} (MSE). Berdasarkan nilai kerugian tersebut, bobot jaringan diperbarui menggunakan algoritma optimisasi Adam untuk mengurangi kesalahan prediksi.
+
+Pelatihan dilakukan dengan \textit{batch size} sebesar 32 dan batas maksimum 50 \textit{epoch}. Selain itu, digunakan \textit{random seed} sebesar 42 untuk membantu menjaga reproduktibilitas eksperimen. Urutan sampel pelatihan tidak diacak (\textit{shuffle}) agar pemrosesan data tetap mengikuti urutan kronologis.
+
+\subsubsection{Validasi Model (\textit{Validation})}
+\leavevmode\par\nopagebreak
+
+Selama proses pelatihan, model juga dievaluasi menggunakan 2.000 sampel validasi yang tidak digunakan untuk memperbarui bobot jaringan. Validasi dilakukan pada akhir setiap \textit{epoch} untuk mengukur kemampuan model dalam menghasilkan prediksi terhadap data di luar data pelatihan. Nilai \textit{validation loss} kemudian digunakan untuk memantau perkembangan kinerja model dan menentukan apakah pelatihan masih memberikan peningkatan.
+
+Untuk mengurangi risiko \textit{overfitting}, digunakan mekanisme \textit{early stopping} dengan \textit{patience} sebesar 10 \textit{epoch}. Apabila nilai \textit{validation loss} tidak mengalami perbaikan selama 10 \textit{epoch} berturut-turut, proses pelatihan dihentikan sebelum mencapai batas maksimum \textit{epoch}. Setelah pelatihan selesai, bobot model dari \textit{epoch} dengan nilai \textit{validation loss} terbaik dipulihkan.
+
+\subsubsection{Penyimpanan Model}
+\leavevmode\par\nopagebreak
+
+Setelah proses pelatihan dan validasi selesai, model CNN disimpan agar dapat digunakan kembali tanpa harus melakukan pelatihan ulang. Program menyimpan model dalam format \texttt{.keras}, beserta parameter normalisasi, metadata konfigurasi, dan riwayat pelatihan. Riwayat tersebut mencakup nilai \textit{training loss} dan \textit{validation loss} pada setiap \textit{epoch}, yang selanjutnya dapat digunakan untuk menghasilkan grafik perkembangan pelatihan.
+
+\subsection{Visualisasi}
+
+Visualisasi digunakan untuk membantu memahami karakteristik dataset, mengamati proses pelatihan, serta menganalisis hasil prediksi kedua model CNN. Program menggunakan pustaka Matplotlib untuk menghasilkan grafik yang disimpan dalam format PNG. Terdapat empat jenis grafik utama yang dihasilkan oleh program, yaitu sebagai berikut.
+
+\subsubsection{Grafik Deret Waktu Data Asli (\textit{Original Time-Series})}
+\leavevmode\par\nopagebreak
+
+Grafik ini menampilkan jumlah penyewaan sepeda berdasarkan waktu pada keseluruhan dataset. Grafik juga menunjukkan batas pembagian antara data pelatihan, validasi, dan pengujian. Visualisasi ini digunakan untuk mengamati pola perubahan jumlah penyewaan sepanjang periode pengamatan sekaligus memperlihatkan pembagian data secara kronologis.
+
+\subsubsection{Grafik Training dan Validation Loss}
+\leavevmode\par\nopagebreak
+
+Grafik ini menampilkan perubahan nilai \textit{loss} pada data pelatihan dan validasi selama proses pelatihan model. Nilai \textit{loss} yang ditampilkan merupakan MSE pada skala target yang telah dinormalisasi. Grafik ini digunakan untuk mengamati perkembangan proses pelatihan, membandingkan kinerja model pada data pelatihan dan validasi, serta mengidentifikasi \textit{epoch} dengan nilai validasi terbaik.
+
+\subsubsection{Grafik Perbandingan Aktual dan Prediksi (\textit{Actual vs. Predicted})}
+\leavevmode\par\nopagebreak
+
+Grafik ini menampilkan perbandingan antara jumlah penyewaan sepeda aktual dengan hasil prediksi CNN pada periode pengujian. Kedua nilai digambarkan berdasarkan waktu untuk memperlihatkan kesesuaian pola antara hasil prediksi dan pengamatan sebenarnya. Grafik ini digunakan untuk mengidentifikasi kondisi ketika model mampu mengikuti perubahan jumlah penyewaan serta periode ketika terjadi penyimpangan prediksi.
+
+\subsubsection{Grafik Kesalahan Prediksi (\textit{Prediction Errors})}
+\leavevmode\par\nopagebreak
+
+Grafik ini menampilkan selisih antara hasil prediksi model dan nilai aktual sepanjang periode pengujian. Kesalahan dihitung dengan mengurangkan nilai aktual dari nilai prediksi, sehingga nilai positif menunjukkan prediksi yang lebih tinggi daripada kondisi sebenarnya (\textit{overprediction}), sedangkan nilai negatif menunjukkan prediksi yang lebih rendah (\textit{underprediction}). Grafik ini digunakan untuk mengidentifikasi pola kesalahan serta periode ketika model menghasilkan penyimpangan prediksi yang besar.
+
+Keempat jenis grafik dihasilkan secara terpisah untuk setiap model. Grafik yang memerlukan hasil pengujian dibuat setelah proses \textit{testing} dan evaluasi selesai sehingga dapat menggunakan hasil prediksi aktual dari masing-masing model.
+
+\subsection{Testing dan Evaluasi}
+
+Setelah proses pelatihan dan validasi selesai, kedua model diuji menggunakan data pengujian (\textit{testing}) yang tidak digunakan selama proses pelatihan. Pengujian dilakukan terhadap 2.261 sampel yang telah melalui tahap \textit{preprocessing}. Pada tahap ini, model menggunakan data historis untuk menghasilkan prediksi jumlah penyewaan sepeda satu jam ke depan tanpa melakukan pembaruan bobot jaringan.
+
+Hasil prediksi kemudian dikembalikan ke skala jumlah penyewaan asli menggunakan proses \textit{inverse scaling}. Nilai prediksi tersebut dibandingkan dengan jumlah penyewaan aktual untuk menghitung tingkat kesalahan model. Evaluasi dilakukan menggunakan tiga metrik utama, yaitu \textit{Mean Absolute Error} (MAE), \textit{Mean Squared Error} (MSE), dan \textit{Root Mean Squared Error} (RMSE). Ketiga metrik tersebut digunakan untuk mengukur besarnya kesalahan prediksi dengan karakteristik perhitungan yang berbeda.
+
+Hasil evaluasi kedua model kemudian dibandingkan menggunakan sampel dan periode pengujian yang sama untuk menganalisis pengaruh penambahan atribut cuaca terhadap akurasi prediksi. Selain metrik keseluruhan, program juga menghasilkan statistik kesalahan berdasarkan waktu, termasuk kesalahan harian dan per jam, yang dapat digunakan untuk analisis lebih lanjut. Hasil prediksi, nilai aktual, dan metrik evaluasi disimpan dalam berkas CSV dan JSON untuk mendukung proses analisis serta visualisasi.
+
+Melalui perbandingan tersebut, penelitian ini bertujuan untuk mengetahui apakah model CNN multivariat mampu menghasilkan prediksi yang lebih akurat dibandingkan model CNN univariat, serta mengidentifikasi kondisi ketika kedua model menghasilkan kesalahan prediksi yang tinggi.
 
 \section{Hasil dan Pembahasan}
-\subsection{Pola permintaan harian}
+Analisis berikut menggunakan artefak eksperimen tersimpan pada repositori~\cite{repo}, meliputi riwayat pelatihan dan prediksi pengujian. Metrik dihitung ulang dari CSV prediksi pada 2.261 timestamp uji yang sama untuk kedua model. Penyusunan analisis ini tidak melakukan pelatihan ulang.
+
+\subsection{Analisis Pola Penyewaan Sepeda}
 Profil rata-rata penyewaan per jam menurut status hari kerja ditunjukkan pada Gambar~\ref{fig:pola}. Agregasi seluruh periode ini merupakan eksplorasi deskriptif, bukan evaluasi model. Perbedaan bentuk profil memperlihatkan bahwa jam yang sama dapat memiliki konteks permintaan berbeda menurut jenis hari. Atribut kalender berpotensi membantu model membedakan konteks tersebut; manfaatnya masih perlu diuji karena belum dimasukkan ke konfigurasi saat ini. Pola agregat tidak cukup untuk menetapkan penyebab perilaku pengguna.
+Profil pada hari kerja memperlihatkan dua puncak pada pagi dan sore hari, sedangkan profil akhir pekan/libur meningkat lebih lebar pada tengah hari. Pola rata-rata menurut jam tersebut berkaitan dengan konsep musiman harian dalam dasar teori~\cite{forecasting}. Permintaan yang berubah sepanjang hari menunjukkan bahwa riwayat temporal menyediakan konteks yang relevan bagi prediksi.
+
 \begin{figure*}[t]
 \centering\includegraphics[width=.95\textwidth]{pola_harian.pdf}
 \caption{Rata-rata penyewaan per jam pada seluruh dataset, dipisahkan menurut hari kerja dan akhir pekan/libur. Jam mengikuti timestamp dataset tanpa konversi zona waktu.}\label{fig:pola}
 \end{figure*}
 
-\subsection{Perbandingan kinerja keseluruhan}
+\subsection{Hasil Pelatihan CNN}
+Gambar~\ref{fig:loss} memperlihatkan loss pelatihan dan validasi dalam skala normalisasi. Early stopping memilih bobot berdasarkan validasi, bukan epoch terakhir atau nilai uji. Nilai loss validasi terbaik adalah sekitar 0,002758 untuk univariat dan 0,002622 untuk multivariat. Kurva ini membantu memeriksa proses optimasi, tetapi tidak menggantikan evaluasi pada periode uji yang terpisah.
+Riwayat pelatihan mencatat epoch validasi terbaik pada epoch ke-22 untuk univariat dan ke-21 untuk multivariat. Pelatihan berhenti setelah 32 dan 31 epoch, konsisten dengan \textit{patience} sebesar 10. Loss pelatihan cenderung menurun, sedangkan loss validasi cenderung melandai dan sedikit meningkat setelah titik terbaik. Pola ini menunjukkan risiko \textit{overfitting} apabila pelatihan dilanjutkan, sehingga pemulihan bobot dari epoch validasi terbaik menjadi relevan.
+
+\begin{figure*}[t]
+\centering\includegraphics[width=.98\textwidth]{training.pdf}
+\caption{Riwayat MSE pelatihan dan validasi. Skala target telah dinormalisasi; panjang pelatihan kedua model berbeda akibat early stopping.}\label{fig:loss}
+\end{figure*}
+
+\subsection{Perbandingan Kinerja Model}
 Tabel~\ref{tab:hasil} merangkum evaluasi pada 2.261 target yang sama. Penambahan fitur cuaca historis menurunkan MAE sekitar 3,66\% dan RMSE sekitar 5,47\%. Bias positif berkurang dari 10,54 menjadi 5,84. Dengan demikian, model multivariat memiliki kesalahan rata-rata lebih rendah dalam eksperimen ini, tetapi peningkatannya relatif kecil.
+MSE juga menurun dari 2.894,05 pada univariat menjadi 2.585,94 pada multivariat. Nilai MSE bersatuan penyewaan kuadrat, sehingga skalanya berbeda dari MAE dan RMSE.
+
 \begin{table}[ht]
-\centering\caption{Hasil pengujian dalam satuan penyewaan, kecuali $R^2$.}\label{tab:hasil}
+\centering\caption{Perbandingan kinerja kedua model pada target uji yang sama. MAE, RMSE, bias, dan galat absolut bersatuan penyewaan; MSE bersatuan penyewaan kuadrat; $R^2$ tanpa satuan.}\label{tab:hasil}
 \begin{tabular}{lrr}\toprule
 Metrik & Univariat & Multivariat\\\midrule
 MAE &35,64&34,34\\
+MSE &2.894,05&2.585,94\\
 RMSE &53,80&50,85\\
 Bias &10,54&5,84\\
 $R^2$ &0,9350&0,9419\\
@@ -72,29 +289,27 @@ Jumlah prediksi negatif &11&26\\\bottomrule
 \end{table}
 Keunggulan rata-rata tidak berlaku untuk semua ukuran. Median galat absolut multivariat adalah 22,76, lebih tinggi daripada univariat sebesar 20,86. Galat absolut maksimumnya juga lebih besar. Sebaliknya, persentil 95 galat absolut lebih rendah. Kombinasi ini menunjukkan bahwa distribusi kesalahan berubah, sehingga satu metrik tidak cukup untuk menyatakan model selalu lebih baik. Perbandingan ini tidak mengisolasi efek masing-masing variabel cuaca dan tidak membuktikan hubungan sebab-akibat.
 
-\subsection{Prediksi terhadap waktu}
+\subsection{Visualisasi Hasil Prediksi}
 Gambar~\ref{fig:pred} menampilkan 168 target uji pertama dengan aturan pemilihan tetap untuk memudahkan pembacaan pola lokal. Rentang pendek membantu melihat waktu puncak dan selisih amplitudo yang dapat tertutup pada grafik seluruh periode. Kesimpulan numerik tetap menggunakan seluruh 2.261 target, bukan hanya cuplikan ini.
+Kedua panel menggunakan interval pengujian dan skala sumbu vertikal yang sama agar perbandingan visual sebanding. Pada cuplikan ini, kedua model secara umum mengikuti fluktuasi harian serta waktu munculnya puncak dan lembah. Selisih amplitudo masih terlihat pada sejumlah puncak, sehingga kedekatan bentuk kurva tidak berarti seluruh target memiliki kesalahan kecil.
+
 \begin{figure*}[t]
 \centering\includegraphics[width=.98\textwidth]{prediksi_minggu.pdf}
-\caption{Aktual dan prediksi kedua CNN pada 168 target uji pertama. Cuplikan ini merupakan ilustrasi lokal; metrik dihitung pada seluruh target uji.}\label{fig:pred}
+\caption{Aktual dan prediksi CNN pada 168 target uji pertama: (a) model univariat dan (b) model multivariat. Kedua panel memakai timestamp dan skala sumbu vertikal yang sama; metrik evaluasi tetap menggunakan seluruh target uji.}\label{fig:pred}
 \end{figure*}
 
-\subsection{Kesalahan terkonsentrasi pada jam tertentu}
+\subsection{Analisis Kesalahan Prediksi}
 Pada model univariat, MAE pukul 08.00 mencapai 90,41 dan pukul 17.00 mencapai 86,32. Model multivariat menurunkannya menjadi 79,80 dan 74,86. Keduanya tetap merupakan dua jam dengan MAE tertinggi untuk masing-masing model. Kesalahan pada jam tersebut jauh lebih besar daripada MAE agregat, sehingga angka rata-rata keseluruhan dapat menyamarkan kelemahan pada periode permintaan yang berubah tajam.
+
+Konsentrasi galat pada pagi dan sore hari dapat dikaitkan dengan perubahan permintaan yang tajam pada profil hari kerja dalam Gambar~\ref{fig:pola}. Salah satu kemungkinan adalah perubahan permintaan pada jam perjalanan rutin, tetapi tujuan perjalanan dan penyebabnya tidak dapat ditentukan dari data agregat.
 
 \begin{figure*}[t]
 \centering\includegraphics[width=.95\textwidth]{error_per_jam.pdf}
 \caption{MAE berdasarkan jam dalam sehari pada target uji yang tersedia. Setiap titik menggabungkan jam yang sama dari berbagai tanggal, bukan urutan 24 jam tertentu.}\label{fig:jam}
 \end{figure*}
-Temuan ini mendukung evaluasi berdasarkan jam apabila prediksi digunakan untuk perencanaan ketersediaan sepeda. Penggunaan fitur jam, jenis hari, atau loss yang memberikan perhatian pada periode sibuk dapat menjadi eksperimen lanjutan. Pemilihan konfigurasi lanjutan harus menggunakan validasi agar periode uji tidak menjadi dasar penyetelan berulang.
-
-\subsection{Pelatihan dan batas keluaran}
-Gambar~\ref{fig:loss} memperlihatkan loss pelatihan dan validasi dalam skala normalisasi. Early stopping memilih bobot berdasarkan validasi, bukan epoch terakhir atau nilai uji. Nilai loss validasi terbaik adalah sekitar 0,002758 untuk univariat dan 0,002622 untuk multivariat. Kurva ini membantu memeriksa proses optimasi, tetapi tidak menggantikan evaluasi pada periode uji yang terpisah.
-\begin{figure*}[t]
-\centering\includegraphics[width=.98\textwidth]{training.pdf}
-\caption{Riwayat MSE pelatihan dan validasi. Skala target telah dinormalisasi; panjang pelatihan kedua model berbeda akibat early stopping.}\label{fig:loss}
-\end{figure*}
 Prediksi negatif ditemukan sebanyak 11 pada univariat dan 26 pada multivariat, dengan nilai minimum masing-masing $-7{,}88$ dan $-17{,}20$. Nilai tersebut tidak sesuai makna fisik jumlah penyewaan. Evaluasi di sini mempertahankan keluaran asli tanpa pembulatan atau clipping. Pembatasan keluaran nonnegatif dapat diuji sebagai perbaikan, tetapi metrik setelah perubahan harus dihitung ulang dan dibedakan dari hasil saat ini.
+
+Temuan ini mendukung evaluasi berdasarkan jam apabila prediksi digunakan untuk perencanaan ketersediaan sepeda. Penggunaan fitur jam, jenis hari, atau loss yang memberikan perhatian pada periode sibuk dapat menjadi eksperimen lanjutan. Pemilihan konfigurasi lanjutan harus menggunakan validasi agar periode uji tidak menjadi dasar penyetelan berulang.
 
 \section{Keterbatasan}
 Eksperimen menggunakan satu seed, satu ukuran jendela, dan satu periode uji sehingga variasi antarpelatihan belum diukur. Baseline sederhana seperti persistence atau prediksi berdasarkan jam yang sama pada hari sebelumnya belum dibandingkan dalam paper ini; hasil belum menunjukkan apakah CNN lebih baik daripada metode sederhana tersebut. Pembagian kronologis juga berarti karakteristik musim pada setiap split tidak identik.
@@ -106,9 +321,15 @@ Visualisasi memberi konteks terhadap hasil CNN: profil permintaan berbeda menuru
 
 Insight utama adalah perlunya menilai model melalui pola temporal dan distribusi kesalahan selain skor keseluruhan. Pukul 08.00 dan 17.00 tetap menjadi bagian yang paling sulit bagi kedua konfigurasi. Penelitian lanjutan dapat menguji fitur kalender, baseline sederhana, dan pengulangan pelatihan sebelum menyimpulkan keunggulan CNN multivariat secara lebih luas.
 
-\begin{thebibliography}{2}
+\begin{thebibliography}{8}
 \raggedright
-\bibitem{dataset} H. Fanaee-T, ``Bike Sharing Dataset,'' UCI Machine Learning Repository, 2013. Dokumentasi dataset lokal: \path{data/bike+sharing+dataset/Readme.txt}.
-\bibitem{repo} Tim proyek, ``CNNVisSiscer,'' kode sumber dan artefak eksperimen lokal, evaluasi 4 November 2026. Berkas: \path{src/train/model.py}, \path{src/train/evaluate.py}, serta direktori \path{output/model} dan \path{output/test_output}.
+\bibitem{dataset} H. Fanaee-T, ``Bike Sharing Dataset,'' UCI Machine Learning Repository, 2013. [Online]. Available: \url{https://archive.ics.uci.edu/dataset/275/bike%2Bsharing%2Bdataset}.
+\bibitem{repo} Tim proyek, ``CNNVisSiscer,'' GitHub. [Online]. Available: \url{https://github.com/alivovue/CNNVisSiscer.git}.
+\bibitem{forecasting} R. J. Hyndman and G. Athanasopoulos, \textit{Forecasting: Principles and Practice}, 3rd ed. Melbourne, Australia: OTexts, 2021. [Online]. Available: \url{https://otexts.com/fpp3/}.
+\bibitem{conv1d} Keras, ``Conv1D Layer,'' Keras API Documentation. [Online]. Available: \url{https://keras.io/api/layers/convolution_layers/convolution1d/}.
+\bibitem{minmax} Scikit-learn Developers, ``MinMaxScaler,'' Scikit-learn API Documentation. [Online]. Available: \url{https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html}.
+\bibitem{early-stopping} Keras, ``EarlyStopping,'' Keras API Documentation. [Online]. Available: \url{https://keras.io/api/callbacks/early_stopping/}.
+\bibitem{adam} D. P. Kingma and J. Ba, ``Adam: A Method for Stochastic Optimization,'' in \textit{Proc. 3rd International Conference on Learning Representations (ICLR)}, 2015. [Online]. Available: \url{https://arxiv.org/abs/1412.6980}.
+\bibitem{regression-metrics} Scikit-learn Developers, ``Metrics and Scoring: Quantifying the Quality of Predictions,'' Scikit-learn User Guide. [Online]. Available: \url{https://scikit-learn.org/stable/modules/model_evaluation.html}.
 \end{thebibliography}
 \end{document}
