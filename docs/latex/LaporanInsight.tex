@@ -9,7 +9,7 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-Studi ini menganalisis pola penyewaan sepeda dan hasil prediksi satu jam ke depan menggunakan CNN satu dimensi pada Bike Sharing Dataset. Dua konfigurasi dibandingkan: univariat yang menggunakan riwayat jumlah penyewaan dan multivariat yang menambahkan temperatur, kelembapan, serta kecepatan angin. Input berupa jendela 24 jam dengan pembagian data secara kronologis. Analisis terhadap hasil eksperimen tersimpan pada 2.261 target uji menunjukkan MAE sebesar 35,64 dan RMSE 53,80 untuk model univariat, sedangkan model multivariat mencapai MAE 34,34 dan RMSE 50,85. Penurunan kesalahan tersebut bersifat moderat dan tidak merata: kesalahan terbesar masih muncul pada pukul 08.00 dan 17.00. Visualisasi menunjukkan pentingnya mengevaluasi model berdasarkan waktu, bias, dan kesalahan ekstrem selain metrik agregat. Temuan terbatas pada satu konfigurasi dan satu seed sehingga belum membuktikan keunggulan yang konsisten di seluruh periode atau pelatihan ulang.
+Studi ini menganalisis pola penyewaan sepeda dan hasil prediksi satu jam ke depan menggunakan CNN satu dimensi pada Bike Sharing Dataset. Dua konfigurasi dibandingkan: univariat yang menggunakan riwayat jumlah penyewaan dan multivariat yang menambahkan temperatur, kelembapan, serta kecepatan angin. Input berupa jendela 24 jam dengan pembagian data secara kronologis. Analisis terhadap hasil eksperimen tersimpan pada 2.261 target uji menunjukkan MAE sebesar 35,64 dan RMSE 53,80 untuk model univariat, sedangkan model multivariat mencapai MAE 34,34 dan RMSE 50,85. Setelah target uji dikelompokkan menurut jam, kedua model mencatat MAE tertinggi pada pukul 08.00, disusul pukul 17.00. Visualisasi menunjukkan pentingnya mengevaluasi model berdasarkan waktu, bias, dan kesalahan ekstrem selain metrik agregat. Temuan terbatas pada satu konfigurasi dan satu seed sehingga belum membuktikan keunggulan yang konsisten di seluruh periode atau pelatihan ulang.
 \end{abstract}
 \begin{IEEEkeywords}
 time-series, CNN, penyewaan sepeda, visualisasi, prediksi.
@@ -189,6 +189,8 @@ Model multivariat merupakan model yang menggunakan beberapa atribut sebagai masu
 
 Kedua model menggunakan arsitektur CNN satu dimensi (Conv1D) dengan konfigurasi lapisan dan hiperparameter yang sama. Perbedaan terdapat pada dimensi masukannya, yaitu \(24 \times 1\) untuk model univariat dan \(24 \times 4\) untuk model multivariat. Arsitektur dimulai dengan lapisan Conv1D yang menggunakan 32 filter, \textit{kernel size} sebesar 3, \textit{stride} sebesar 1, dan \textit{valid padding}, diikuti oleh fungsi aktivasi ReLU. Hasil konvolusi kemudian diproses melalui lapisan \textit{Flatten} untuk mengubahnya menjadi vektor satu dimensi, yang diteruskan ke lapisan \textit{Dense} dengan 16 neuron dan aktivasi ReLU. Lapisan keluaran terdiri atas satu neuron dengan aktivasi linear untuk menghasilkan prediksi jumlah penyewaan sepeda pada jam berikutnya.
 
+Chen dan Shi mengubah deret waktu menjadi \textit{Relative Position Matrix} sebelum menggunakan CNN untuk klasifikasi~\cite{chen-shi-rpm}. Dalam penelitian ini, Conv1D diterapkan langsung pada urutan pengamatan per jam karena targetnya adalah jumlah penyewaan pada jam berikutnya. Setiap filter membaca tiga jam berturut-turut dan menggunakan bobot yang sama pada 22 posisi dalam jendela 24 jam. Dengan cara ini, sebuah filter dapat merespons pola lokal, misalnya kenaikan jumlah penyewaan selama tiga jam, di berbagai posisi dalam jendela. Pada model multivariat, filter membaca jumlah penyewaan dan ketiga atribut cuaca secara bersamaan. Lapisan \textit{Dense} menggabungkan respons filter dari seluruh jendela untuk menghasilkan satu prediksi.
+
 \subsection{Pipeline CNN}
 
 Setelah arsitektur CNN ditentukan, kedua model dilatih secara terpisah menggunakan data yang telah melalui tahap \textit{preprocessing}. Proses pelatihan bertujuan agar model dapat mempelajari hubungan antara data historis dan jumlah penyewaan sepeda pada jam berikutnya. Proses ini terdiri atas beberapa tahapan, yaitu pelatihan, validasi, dan penyimpanan model.
@@ -210,11 +212,13 @@ Untuk mengurangi risiko \textit{overfitting}, digunakan mekanisme \textit{early 
 \subsubsection{Penyimpanan Model}
 \leavevmode\par\nopagebreak
 
-Setelah proses pelatihan dan validasi selesai, model CNN disimpan agar dapat digunakan kembali tanpa harus melakukan pelatihan ulang. Program menyimpan model dalam format \texttt{.keras}, beserta parameter normalisasi, metadata konfigurasi, dan riwayat pelatihan. Riwayat tersebut mencakup nilai \textit{training loss} dan \textit{validation loss} pada setiap \textit{epoch}, yang selanjutnya dapat digunakan untuk menghasilkan grafik perkembangan pelatihan.
+Setelah proses pelatihan dan validasi selesai, model CNN disimpan agar dapat digunakan kembali tanpa harus melakukan pelatihan ulang. Program menyimpan model dalam format \texttt{.keras}, beserta parameter normalisasi, metadata konfigurasi, dan riwayat pelatihan. Riwayat tersebut mencakup nilai \textit{training loss} dan \textit{validation loss} pada setiap \textit{epoch}, yang selanjutnya dapat digunakan untuk menghasilkan grafik perkembangan pelatihan. 
 
 \subsection{Visualisasi}
 
-Visualisasi digunakan untuk membantu memahami karakteristik dataset, mengamati proses pelatihan, serta menganalisis hasil prediksi kedua model CNN. Program menggunakan pustaka Matplotlib untuk menghasilkan grafik yang disimpan dalam format PNG. Terdapat empat jenis grafik utama yang dihasilkan oleh program, yaitu sebagai berikut.
+Program menghasilkan empat jenis grafik: deret waktu penyewaan, kurva loss pelatihan dan validasi, perbandingan nilai aktual dengan prediksi, serta galat prediksi sepanjang periode uji. Untuk membandingkan model univariat dan multivariat, laporan ini menggunakan data sumber dan hasil eksperimen tersimpan sehingga kedua model dapat diamati pada periode dan skala yang sama.
+
+Profil permintaan dihitung dari seluruh dataset dengan mengelompokkan jumlah penyewaan menurut jam dan status hari kerja. Kurva pelatihan menggunakan riwayat MSE pelatihan dan validasi. Perbandingan aktual dan prediksi menampilkan 168 target uji pertama, sedangkan analisis kesalahan per jam menggunakan seluruh 2.261 target uji. Untuk setiap jam, MAE dihitung sebagai rata-rata selisih absolut antara prediksi dan observasi pada jam tersebut.
 
 \subsubsection{Grafik Deret Waktu Data Asli (\textit{Original Time-Series})}
 \leavevmode\par\nopagebreak
@@ -319,11 +323,11 @@ Jendela yang melintasi jam hilang dikeluarkan. Karena itu, metrik berlaku pada t
 \section{Kesimpulan}
 Penelitian ini berhasil menerapkan \textit{Convolutional Neural Network} (CNN) satu dimensi untuk memprediksi jumlah penyewaan sepeda satu jam ke depan berdasarkan data historis. Dua konfigurasi model yang digunakan, yaitu univariat dan multivariat, mampu menghasilkan prediksi yang mengikuti pola perubahan jumlah penyewaan pada data pengujian. Hasil tersebut menunjukkan bahwa CNN dapat digunakan untuk mempelajari pola temporal pada data penyewaan sepeda.
 
-Berdasarkan hasil evaluasi terhadap 2.261 sampel pengujian, model multivariat menghasilkan nilai MAE sebesar 34,34 dan RMSE sebesar 50,85, lebih rendah dibandingkan model univariat dengan MAE sebesar 35,64 dan RMSE sebesar 53,80. Hal ini menunjukkan bahwa penambahan atribut temperatur, kelembapan, dan kecepatan angin dapat meningkatkan akurasi prediksi dalam konfigurasi eksperimen yang digunakan, meskipun peningkatannya relatif kecil dan tidak terjadi pada seluruh ukuran kesalahan.
+Berdasarkan hasil evaluasi terhadap 2.261 sampel pengujian, model multivariat menghasilkan nilai MAE sebesar 34,34 dan RMSE sebesar 50,85, lebih rendah dibandingkan model univariat dengan MAE sebesar 35,64 dan RMSE sebesar 53,80. Pada periode uji ini, penggunaan riwayat cuaca bersama riwayat penyewaan menurunkan MAE sekitar 3,66\%. Namun, galat absolut maksimum meningkat dari 335,89 menjadi 396,63 penyewaan. Dengan demikian, model multivariat lebih akurat secara rata-rata pada sampel uji, tetapi prediksinya yang paling meleset memiliki kesalahan lebih besar daripada pada model univariat.
 
-Visualisasi hasil prediksi menunjukkan bahwa kedua model mampu mengikuti pola umum perubahan jumlah penyewaan, tetapi masih mengalami kesalahan pada periode tertentu. Analisis kesalahan berdasarkan jam memperlihatkan bahwa kesalahan terbesar terjadi sekitar pukul 08.00 dan 17.00, yang berkaitan dengan periode perubahan permintaan yang tinggi. Dengan demikian, visualisasi tidak hanya membantu membandingkan hasil prediksi dengan data aktual, tetapi juga memberikan informasi mengenai pola dan keterbatasan kinerja model yang tidak sepenuhnya terlihat melalui metrik evaluasi keseluruhan.
+Visualisasi hasil prediksi menunjukkan bahwa kedua model mengikuti pola harian penyewaan, tetapi masih mengalami kesulitan pada jam tertentu. Pada model multivariat, MAE mencapai 79,80 penyewaan pada pukul 08.00 dan 74,86 pada pukul 17.00. Meskipun MAE keseluruhan sebesar 34,34 penyewaan per jam, pada kedua jam tersebut rata-rata galat absolut melampaui dua kali nilai keseluruhan.
 
-\begin{thebibliography}{8}
+\begin{thebibliography}{9}
 \raggedright
 \bibitem{dataset} H. Fanaee-T, ``Bike Sharing Dataset,'' UCI Machine Learning Repository, 2013. [Online]. Available: \url{https://archive.ics.uci.edu/dataset/275/bike%2Bsharing%2Bdataset}.
 \bibitem{repo} Tim proyek, ``CNNVisSiscer,'' GitHub. [Online]. Available: \url{https://github.com/alivovue/CNNVisSiscer.git}.
@@ -333,5 +337,6 @@ Visualisasi hasil prediksi menunjukkan bahwa kedua model mampu mengikuti pola um
 \bibitem{early-stopping} Keras, ``EarlyStopping,'' Keras API Documentation. [Online]. Available: \url{https://keras.io/api/callbacks/early_stopping/}.
 \bibitem{adam} D. P. Kingma and J. Ba, ``Adam: A Method for Stochastic Optimization,'' in \textit{Proc. 3rd International Conference on Learning Representations (ICLR)}, 2015. [Online]. Available: \url{https://arxiv.org/abs/1412.6980}.
 \bibitem{regression-metrics} Scikit-learn Developers, ``Metrics and Scoring: Quantifying the Quality of Predictions,'' Scikit-learn User Guide. [Online]. Available: \url{https://scikit-learn.org/stable/modules/model_evaluation.html}.
+\bibitem{chen-shi-rpm} W. Chen and K. Shi, ``A deep learning framework for time series classification using Relative Position Matrix and Convolutional Neural Network,'' \textit{Neurocomputing}, vol. 359, pp. 384--394, 2019.
 \end{thebibliography}
 \end{document}
